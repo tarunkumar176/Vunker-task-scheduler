@@ -18,7 +18,7 @@ import { format } from 'date-fns';
 import { useThemeStore } from '../store/themeStore';
 import { useTaskStore } from '../store/taskStore';
 import { initDatabase } from '../services/database';
-import { requestNotificationPermissions } from '../services/notifications.expo-go';
+import { requestNotificationPermissions } from '../services/notifications';
 import TaskCard from '../components/TaskCard';
 
 export default function Index() {

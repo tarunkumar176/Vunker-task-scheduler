@@ -19,6 +19,9 @@ interface TaskCardProps {
 const TaskCard: React.FC<TaskCardProps> = ({ task, onToggleComplete, onEdit, onDelete }) => {
   const { theme } = useThemeStore();
   
+  // Ensure completed is always a boolean
+  const isCompleted = Boolean(task.completed);
+  
   const priorityColor = {
     High: theme.high,
     Medium: theme.medium,
@@ -33,7 +36,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onToggleComplete, onEdit, onD
           backgroundColor: theme.card,
           borderLeftColor: priorityColor,
           borderColor: theme.border,
-          opacity: task.completed ? 0.6 : 1,
+          opacity: isCompleted ? 0.6 : 1,
         },
       ]}
     >
@@ -47,11 +50,11 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onToggleComplete, onEdit, onD
             styles.checkbox,
             {
               borderColor: priorityColor,
-              backgroundColor: task.completed ? priorityColor : 'transparent',
+              backgroundColor: isCompleted ? priorityColor : 'transparent',
             },
           ]}
         >
-          {task.completed && <Ionicons name="checkmark" size={18} color="#FFFFFF" />}
+          {isCompleted && <Ionicons name="checkmark" size={18} color="#FFFFFF" />}
         </View>
       </TouchableOpacity>
 
@@ -62,7 +65,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onToggleComplete, onEdit, onD
             styles.title,
             {
               color: theme.text,
-              textDecorationLine: task.completed ? 'line-through' : 'none',
+              textDecorationLine: isCompleted ? 'line-through' : 'none',
             },
           ]}
           numberOfLines={1}

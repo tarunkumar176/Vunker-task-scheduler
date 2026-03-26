@@ -55,7 +55,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       const tempTask: Task = {
         ...taskData,
         id: 'temp',
-        completed: 0,
+        completed: false,
         notificationIds: '[]',
         createdAt: new Date().toISOString(),
       };

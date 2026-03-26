@@ -9,10 +9,29 @@ export interface Task {
   date: string; // YYYY-MM-DD
   time: string; // HH:mm
   priority: 'High' | 'Medium' | 'Low';
-  completed: number; // 0 or 1 (SQLite boolean)
+  completed: boolean; // converted from SQLite INTEGER
   notificationIds: string; // JSON array of notification IDs
   createdAt: string;
 }
+
+// Internal SQLite row type
+interface TaskRow {
+  id: string;
+  title: string;
+  description: string;
+  date: string;
+  time: string;
+  priority: 'High' | 'Medium' | 'Low';
+  completed: number; // 0 or 1 in SQLite
+  notificationIds: string;
+  createdAt: string;
+}
+
+// Convert SQLite row to Task
+const rowToTask = (row: TaskRow): Task => ({
+  ...row,
+  completed: row.completed === 1,
+});
 
 // Initialize database
 export const initDatabase = async (): Promise<void> => {
@@ -42,7 +61,7 @@ export const initDatabase = async (): Promise<void> => {
 };
 
 // Create a new task
-export const createTask = async (task: Omit<Task, 'id' | 'createdAt'>): Promise<Task> => {
+export const createTask = async (task: Omit<Task, 'id' | 'createdAt' | 'completed'>): Promise<Task> => {
   if (!db) throw new Error('Database not initialized');
   
   const id = `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -51,6 +70,7 @@ export const createTask = async (task: Omit<Task, 'id' | 'createdAt'>): Promise<
   const newTask: Task = {
     id,
     ...task,
+    completed: false,
     createdAt,
   };
   
@@ -67,27 +87,27 @@ export const createTask = async (task: Omit<Task, 'id' | 'createdAt'>): Promise<
 export const getTasks = async (): Promise<Task[]> => {
   if (!db) throw new Error('Database not initialized');
   
-  const result = await db.getAllAsync<Task>('SELECT * FROM tasks ORDER BY date, time');
-  return result;
+  const result = await db.getAllAsync<TaskRow>('SELECT * FROM tasks ORDER BY date, time');
+  return result.map(rowToTask);
 };
 
 // Get tasks by date
 export const getTasksByDate = async (date: string): Promise<Task[]> => {
   if (!db) throw new Error('Database not initialized');
   
-  const result = await db.getAllAsync<Task>(
+  const result = await db.getAllAsync<TaskRow>(
     'SELECT * FROM tasks WHERE date = ? ORDER BY time',
     [date]
   );
-  return result;
+  return result.map(rowToTask);
 };
 
 // Get task by ID
 export const getTaskById = async (id: string): Promise<Task | null> => {
   if (!db) throw new Error('Database not initialized');
   
-  const result = await db.getFirstAsync<Task>('SELECT * FROM tasks WHERE id = ?', [id]);
-  return result || null;
+  const result = await db.getFirstAsync<TaskRow>('SELECT * FROM tasks WHERE id = ?', [id]);
+  return result ? rowToTask(result) : null;
 };
 
 // Update task

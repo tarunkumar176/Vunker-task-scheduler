@@ -38,7 +38,10 @@ export const initDatabase = async (): Promise<void> => {
   try {
     db = await SQLite.openDatabaseAsync('reminders.db');
     
-    // Create tasks table
+    // Drop existing table to fix any data type issues
+    await db.execAsync('DROP TABLE IF EXISTS tasks;');
+    
+    // Create tasks table with correct schema
     await db.execAsync(`
       CREATE TABLE IF NOT EXISTS tasks (
         id TEXT PRIMARY KEY,

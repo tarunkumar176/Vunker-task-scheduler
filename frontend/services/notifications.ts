@@ -3,17 +3,30 @@ import { Platform } from 'react-native';
 import { Task } from './database';
 import { format, subHours, subMinutes, parseISO } from 'date-fns';
 
-// Configure notification handler
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+// Check if notifications are available
+let notificationsAvailable = true;
+
+// Configure notification handler only if available
+try {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
+  });
+} catch (error) {
+  console.log('Notifications not available in Expo Go:', error);
+  notificationsAvailable = false;
+}
 
 // Request notification permissions
 export const requestNotificationPermissions = async (): Promise<boolean> => {
+  if (!notificationsAvailable) {
+    console.log('Notifications not available - using Expo Go. Build a standalone app for full notification support.');
+    return false;
+  }
+  
   try {
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
@@ -48,6 +61,11 @@ export const requestNotificationPermissions = async (): Promise<boolean> => {
 
 // Schedule notifications for a task
 export const scheduleTaskNotifications = async (task: Task): Promise<string[]> => {
+  if (!notificationsAvailable) {
+    console.log('Notifications not available - skipping scheduling');
+    return [];
+  }
+  
   try {
     const notificationIds: string[] = [];
     
@@ -128,6 +146,10 @@ export const scheduleTaskNotifications = async (task: Task): Promise<string[]> =
 
 // Cancel task notifications
 export const cancelTaskNotifications = async (notificationIdsJson: string): Promise<void> => {
+  if (!notificationsAvailable) {
+    return;
+  }
+  
   try {
     if (!notificationIdsJson || notificationIdsJson === '[]') return;
     
@@ -145,7 +167,16 @@ export const cancelTaskNotifications = async (notificationIdsJson: string): Prom
 
 // Get all scheduled notifications (for debugging)
 export const getAllScheduledNotifications = async () => {
-  const scheduled = await Notifications.getAllScheduledNotificationsAsync();
-  console.log('Scheduled notifications:', scheduled.length);
-  return scheduled;
+  if (!notificationsAvailable) {
+    return [];
+  }
+  
+  try {
+    const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+    console.log('Scheduled notifications:', scheduled.length);
+    return scheduled;
+  } catch (error) {
+    console.error('Error getting scheduled notifications:', error);
+    return [];
+  }
 };

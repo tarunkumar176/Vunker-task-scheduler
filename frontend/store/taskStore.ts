@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { Task } from '../services/database';
 import * as Database from '../services/database';
-import * as NotificationService from '../services/notifications';
+import * as NotificationService from '../services/notifications.expo-go';
 
 interface TaskState {
   tasks: Task[];

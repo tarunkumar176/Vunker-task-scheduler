@@ -14,7 +14,7 @@ import { useRouter } from 'expo-router';
 
 import { useThemeStore } from '../store/themeStore';
 import { useTaskStore } from '../store/taskStore';
-import { getAllScheduledNotifications } from '../services/notifications';
+import { getAllScheduledNotifications } from '../services/notifications.expo-go';
 
 export default function Settings() {
   const router = useRouter();

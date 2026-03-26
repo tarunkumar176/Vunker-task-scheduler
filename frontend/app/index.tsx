@@ -18,7 +18,7 @@ import { format } from 'date-fns';
 import { useThemeStore } from '../store/themeStore';
 import { useTaskStore } from '../store/taskStore';
 import { initDatabase } from '../services/database';
-import { requestNotificationPermissions } from '../services/notifications';
+import { requestNotificationPermissions } from '../services/notifications.expo-go';
 import TaskCard from '../components/TaskCard';
 
 export default function Index() {
@@ -44,14 +44,14 @@ export default function Index() {
         // Initialize database
         await initDatabase();
         
-        // Request notification permissions
-        const hasPermission = await requestNotificationPermissions();
-        if (!hasPermission) {
-          Alert.alert(
-            'Notification Permission',
-            'Please enable notifications to receive task reminders.',
-            [{ text: 'OK' }]
-          );
+        // Request notification permissions (will fail gracefully in Expo Go)
+        try {
+          const hasPermission = await requestNotificationPermissions();
+          if (!hasPermission) {
+            console.log('Notifications not available in Expo Go. Build a standalone app for full notification support.');
+          }
+        } catch (error) {
+          console.log('Notifications not supported:', error);
         }
         
         // Load tasks for today

@@ -13,6 +13,8 @@ try {
       shouldShowAlert: true,
       shouldPlaySound: true,
       shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
     }),
   });
 } catch (error) {
@@ -73,34 +75,23 @@ export const scheduleTaskNotifications = async (task: Task): Promise<string[]> =
     const taskDateTime = parseISO(`${task.date}T${task.time}:00`);
     const now = new Date();
     
+    console.log(`Scheduling notifications for: ${task.title}`);
+    console.log(`Task time: ${taskDateTime.toLocaleString()}`);
+    console.log(`Current time: ${now.toLocaleString()}`);
+    
     // Only schedule future notifications
     if (taskDateTime <= now) {
       console.log('Task time is in the past, skipping notifications');
       return [];
     }
     
-    // Notification at task time
-    const mainNotificationTime = taskDateTime;
-    if (mainNotificationTime > now) {
-      const mainId = await Notifications.scheduleNotificationAsync({
-        content: {
-          title: '⏰ Task Reminder',
-          body: task.title,
-          data: { taskId: task.id, type: 'main' },
-          sound: 'default',
-          priority: Notifications.AndroidNotificationPriority.HIGH,
-        },
-        trigger: {
-          date: mainNotificationTime,
-          channelId: 'reminders',
-        },
-      });
-      notificationIds.push(mainId);
-    }
-    
-    // Notification 1 hour before
+    // Calculate notification times
     const oneHourBefore = subHours(taskDateTime, 1);
+    const tenMinsBefore = subMinutes(taskDateTime, 10);
+    
+    // Notification 1 hour before (only if more than 1 hour away)
     if (oneHourBefore > now) {
+      console.log(`Scheduling 1-hour notification for: ${oneHourBefore.toLocaleString()}`);
       const oneHourId = await Notifications.scheduleNotificationAsync({
         content: {
           title: '⏰ Task in 1 hour',
@@ -115,11 +106,13 @@ export const scheduleTaskNotifications = async (task: Task): Promise<string[]> =
         },
       });
       notificationIds.push(oneHourId);
+    } else {
+      console.log('Skipping 1-hour notification (too soon)');
     }
     
-    // Notification 10 minutes before
-    const tenMinsBefore = subMinutes(taskDateTime, 10);
+    // Notification 10 minutes before (only if more than 10 minutes away)
     if (tenMinsBefore > now) {
+      console.log(`Scheduling 10-min notification for: ${tenMinsBefore.toLocaleString()}`);
       const tenMinsId = await Notifications.scheduleNotificationAsync({
         content: {
           title: '⏰ Task in 10 minutes',
@@ -134,9 +127,28 @@ export const scheduleTaskNotifications = async (task: Task): Promise<string[]> =
         },
       });
       notificationIds.push(tenMinsId);
+    } else {
+      console.log('Skipping 10-min notification (too soon)');
     }
     
-    console.log(`Scheduled ${notificationIds.length} notifications for task: ${task.title}`);
+    // Notification at task time (always schedule if task is in future)
+    console.log(`Scheduling main notification for: ${taskDateTime.toLocaleString()}`);
+    const mainId = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: '⏰ Task Reminder',
+        body: task.title,
+        data: { taskId: task.id, type: 'main' },
+        sound: 'default',
+        priority: Notifications.AndroidNotificationPriority.HIGH,
+      },
+      trigger: {
+        date: taskDateTime,
+        channelId: 'reminders',
+      },
+    });
+    notificationIds.push(mainId);
+    
+    console.log(`✓ Scheduled ${notificationIds.length} notifications for task: ${task.title}`);
     return notificationIds;
   } catch (error) {
     console.error('Error scheduling notifications:', error);

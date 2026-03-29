@@ -2,6 +2,8 @@ import * as SQLite from 'expo-sqlite';
 
 let db: SQLite.SQLiteDatabase | null = null;
 
+export type RecurrenceType = 'none' | 'daily' | 'weekly' | 'monthly';
+
 export interface Task {
   id: string;
   title: string;
@@ -11,6 +13,8 @@ export interface Task {
   priority: 'High' | 'Medium' | 'Low';
   completed: boolean; // converted from SQLite INTEGER
   notificationIds: string; // JSON array of notification IDs
+  recurrence: RecurrenceType; // Recurrence pattern
+  recurrenceDays: string; // JSON array of days [0-6] for weekly recurrence (0=Sunday)
   createdAt: string;
 }
 
@@ -24,6 +28,8 @@ interface TaskRow {
   priority: 'High' | 'Medium' | 'Low';
   completed: number; // 0 or 1 in SQLite
   notificationIds: string;
+  recurrence: string;
+  recurrenceDays: string;
   createdAt: string;
 }
 
@@ -31,17 +37,19 @@ interface TaskRow {
 const rowToTask = (row: TaskRow): Task => ({
   ...row,
   completed: row.completed === 1,
+  recurrence: (row.recurrence || 'none') as RecurrenceType,
+  recurrenceDays: row.recurrenceDays || '[]',
 });
 
 // Initialize database
 export const initDatabase = async (): Promise<void> => {
   try {
-    db = await SQLite.openDatabaseAsync('reminders.db');
+    // Open database in document directory (persists across app restarts)
+    db = await SQLite.openDatabaseAsync('reminders.db', {
+      enableChangeListener: true,
+    });
     
-    // Drop existing table to fix any data type issues
-    await db.execAsync('DROP TABLE IF EXISTS tasks;');
-    
-    // Create tasks table with correct schema
+    // Create tasks table (don't drop - we want to keep data!)
     await db.execAsync(`
       CREATE TABLE IF NOT EXISTS tasks (
         id TEXT PRIMARY KEY,
@@ -52,6 +60,8 @@ export const initDatabase = async (): Promise<void> => {
         priority TEXT NOT NULL,
         completed INTEGER DEFAULT 0,
         notificationIds TEXT,
+        recurrence TEXT DEFAULT 'none',
+        recurrenceDays TEXT,
         createdAt TEXT NOT NULL
       );
     `);
@@ -78,9 +88,21 @@ export const createTask = async (task: Omit<Task, 'id' | 'createdAt' | 'complete
   };
   
   await db.runAsync(
-    `INSERT INTO tasks (id, title, description, date, time, priority, completed, notificationIds, createdAt)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [id, task.title, task.description, task.date, task.time, task.priority, 0, task.notificationIds, createdAt]
+    `INSERT INTO tasks (id, title, description, date, time, priority, completed, notificationIds, recurrence, recurrenceDays, createdAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      task.title,
+      task.description,
+      task.date,
+      task.time,
+      task.priority,
+      0,
+      task.notificationIds,
+      task.recurrence || 'none',
+      task.recurrenceDays || '[]',
+      createdAt,
+    ]
   );
   
   return newTask;

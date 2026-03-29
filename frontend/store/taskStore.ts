@@ -57,6 +57,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         id: 'temp',
         completed: false,
         notificationIds: '[]',
+        recurrence: taskData.recurrence || 'none',
+        recurrenceDays: taskData.recurrenceDays || '[]',
         createdAt: new Date().toISOString(),
       };
       
@@ -65,6 +67,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       // Create task with notification IDs
       const newTask = await Database.createTask({
         ...taskData,
+        recurrence: taskData.recurrence || 'none',
+        recurrenceDays: taskData.recurrenceDays || '[]',
         notificationIds: JSON.stringify(notificationIds),
       });
       

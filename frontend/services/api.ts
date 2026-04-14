@@ -1,8 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Change this to your Render URL after deployment
-export const API_BASE = 'https://vynker-scheduler-api.onrender.com';
-// For local dev, use: export const API_BASE = 'http://192.168.x.x:8000';
+// Production backend on Render
+export const API_BASE = 'https://vynker-management-backend.onrender.com';
+// For local dev: export const API_BASE = 'http://192.168.x.x:8000';
 
 const getToken = async (): Promise<string | null> => {
   return AsyncStorage.getItem('auth_token');

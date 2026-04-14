@@ -606,3 +606,7 @@ async def dashboard(user: User = Depends(get_current_user), db: AsyncSession = D
             "pending_tasks_today": pending_today, "upcoming_renewals": upcoming}
 
 app.include_router(router)
+
+@app.get("/health")
+async def health():
+    return {"status": "ok", "timestamp": datetime.utcnow().isoformat()}

@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { useAuthStore } from '../store/authStore';
 import { useThemeStore } from '../store/themeStore';
 import { requestNotificationPermissions } from '../services/notifications';
+import { startKeepAlive } from '../services/keepAlive';
 
 export default function Entry() {
   const router = useRouter();
@@ -13,6 +14,7 @@ export default function Entry() {
   useEffect(() => {
     initialize();
     requestNotificationPermissions().catch(() => {});
+    startKeepAlive();
   }, []);
 
   useEffect(() => {

@@ -16,12 +16,9 @@ export default function RootLayout() {
         <Stack.Screen name="settings" />
         <Stack.Screen name="add-task" />
         <Stack.Screen name="edit-task" />
-        <Stack.Screen name="tasks/index" />
-        <Stack.Screen name="projects/index" />
-        <Stack.Screen name="projects/add" />
-        <Stack.Screen name="projects/[id]" />
-        <Stack.Screen name="maintenance/index" />
-        <Stack.Screen name="maintenance/[id]" />
+        <Stack.Screen name="tasks" />
+        <Stack.Screen name="projects" />
+        <Stack.Screen name="maintenance" />
       </Stack>
     </>
   );

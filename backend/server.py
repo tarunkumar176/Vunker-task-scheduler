@@ -579,11 +579,10 @@ async def get_upcoming_renewals(user: User = Depends(get_current_user), db: Asyn
     upcoming = []
     for m in contracts:
         dl = days_left(m.next_due_date) if m.next_due_date else None
-        if dl is not None and dl <= 30:
-            upcoming.append({"id": m.id, "project_id": m.project_id, "project_name": m.project.name,
-                              "plan_name": m.plan_name, "cost": m.cost, "billing_cycle": m.billing_cycle,
-                              "next_due_date": m.next_due_date, "days_left": dl, "status": m.renewal_status})
-    upcoming.sort(key=lambda x: x["days_left"])
+        upcoming.append({"id": m.id, "project_id": m.project_id, "project_name": m.project.name,
+                          "plan_name": m.plan_name, "cost": m.cost, "billing_cycle": m.billing_cycle,
+                          "next_due_date": m.next_due_date, "days_left": dl, "status": m.renewal_status})
+    upcoming.sort(key=lambda x: x["days_left"] if x["days_left"] is not None else 9999)
     return upcoming
 
 # ── Dashboard ─────────────────────────────────────────────────────────────────

@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, StatusBar, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { useThemeStore } from '../store/themeStore';
 import { useAuthStore } from '../store/authStore';
 import { useTaskStore } from '../store/taskStore';
@@ -17,8 +18,15 @@ export default function Home() {
   const [dashboard, setDashboard] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadDashboard();
+  // Reload dashboard every time screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      loadDashboard();
+    }, [])
+  );
+
+  // Run migration only once on first mount
+  React.useEffect(() => {
     runMigration();
   }, []);
 
@@ -50,9 +58,9 @@ export default function Home() {
   };
 
   const modules = [
-    { icon: 'calendar', label: 'Task Scheduler', subtitle: 'Reminders & calendar', color: '#6C63FF', bg: '#6C63FF18', route: '/tasks/index' },
-    { icon: 'briefcase', label: 'Projects', subtitle: 'Finance & payments', color: '#FF6B6B', bg: '#FF6B6B18', route: '/projects/index' },
-    { icon: 'refresh-circle', label: 'Maintenance', subtitle: 'Renewals & contracts', color: '#2ED573', bg: '#2ED57318', route: '/maintenance/index' },
+    { icon: 'calendar', label: 'Task Scheduler', subtitle: 'Reminders & calendar', color: '#6C63FF', bg: '#6C63FF18', route: '/tasks' },
+    { icon: 'briefcase', label: 'Projects', subtitle: 'Finance & payments', color: '#FF6B6B', bg: '#FF6B6B18', route: '/projects' },
+    { icon: 'refresh-circle', label: 'Maintenance', subtitle: 'Renewals & contracts', color: '#2ED573', bg: '#2ED57318', route: '/maintenance' },
     { icon: 'settings', label: 'Settings', subtitle: 'Theme & preferences', color: '#FF8C42', bg: '#FF8C4218', route: '/settings' },
   ];
 
@@ -113,7 +121,7 @@ export default function Home() {
         {dashboard?.upcoming_renewals?.length > 0 && (
           <TouchableOpacity
             style={[styles.alertCard, { backgroundColor: '#FF8C4215', borderColor: '#FF8C42' }]}
-            onPress={() => router.push('/maintenance/index')}
+            onPress={() => router.push('/maintenance')}
           >
             <Ionicons name="warning" size={20} color="#FF8C42" />
             <View style={styles.alertText}>

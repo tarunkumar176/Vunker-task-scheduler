@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Alert, StatusBar } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -46,21 +46,15 @@ export default function AddProject() {
         deadline: format(deadline, 'yyyy-MM-dd'), milestone_notes: milestoneNotes.trim(),
       });
       Alert.alert('Project Created', `"${name}" has been added.`, [
-        { text: 'OK', onPress: () => router.replace({ pathname: '/projects/[id]', params: { id: project.id } }) },
+        { text: 'View Project', onPress: () => router.replace({ pathname: '/projects/[id]', params: { id: project.id } }) },
+        { text: 'Back to Projects', onPress: () => router.replace('/projects') },
       ]);
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'Failed to create project');
+      Alert.alert('Error', e.message || 'Failed to create project. Check your internet connection.');
     } finally {
       setLoading(false);
     }
   };
-
-  const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
-    <View style={styles.field}>
-      <Text style={[styles.label, { color: theme.textSecondary }]}>{label}</Text>
-      {children}
-    </View>
-  );
 
   const inp = [styles.input, { backgroundColor: theme.surface, color: theme.text, borderColor: theme.border }] as any;
 
@@ -75,78 +69,94 @@ export default function AddProject() {
         <View style={{ width: 38 }} />
       </View>
 
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
-        <ScrollView contentContainerStyle={styles.form} showsVerticalScrollIndicator={false}>
-
-          <Text style={[styles.section, { color: theme.primary }]}>PROJECT INFO</Text>
-          <Field label="PROJECT NAME *"><TextInput style={inp} value={name} onChangeText={setName} placeholder="e.g. E-commerce Website" placeholderTextColor={theme.disabled} /></Field>
-          <Field label="DESCRIPTION"><TextInput style={[inp, { height: 80 }]} value={description} onChangeText={setDescription} placeholder="Brief description" placeholderTextColor={theme.disabled} multiline textAlignVertical="top" /></Field>
-
-          <Text style={[styles.section, { color: theme.primary }]}>CLIENT INFO</Text>
-          <Field label="CLIENT NAME *"><TextInput style={inp} value={clientName} onChangeText={setClientName} placeholder="Client full name" placeholderTextColor={theme.disabled} /></Field>
-          <View style={styles.row}>
-            <View style={[styles.field, styles.flex]}>
-              <Text style={[styles.label, { color: theme.textSecondary }]}>PHONE</Text>
-              <TextInput style={inp} value={clientPhone} onChangeText={setClientPhone} placeholder="+91 XXXXX" placeholderTextColor={theme.disabled} keyboardType="phone-pad" />
-            </View>
-            <View style={[styles.field, styles.flex]}>
-              <Text style={[styles.label, { color: theme.textSecondary }]}>COMPANY</Text>
-              <TextInput style={inp} value={clientCompany} onChangeText={setClientCompany} placeholder="Company name" placeholderTextColor={theme.disabled} />
-            </View>
-          </View>
-          <Field label="EMAIL"><TextInput style={inp} value={clientEmail} onChangeText={setClientEmail} placeholder="client@email.com" placeholderTextColor={theme.disabled} keyboardType="email-address" autoCapitalize="none" /></Field>
-
-          <Text style={[styles.section, { color: theme.primary }]}>FINANCIALS</Text>
-          <View style={styles.row}>
-            <View style={[styles.field, styles.flex]}>
-              <Text style={[styles.label, { color: theme.textSecondary }]}>TOTAL COST (₹) *</Text>
-              <TextInput style={inp} value={totalCost} onChangeText={setTotalCost} placeholder="0" placeholderTextColor={theme.disabled} keyboardType="numeric" />
-            </View>
-            <View style={[styles.field, styles.flex]}>
-              <Text style={[styles.label, { color: theme.textSecondary }]}>ADVANCE PAID (₹)</Text>
-              <TextInput style={inp} value={advancePaid} onChangeText={setAdvancePaid} placeholder="0" placeholderTextColor={theme.disabled} keyboardType="numeric" />
-            </View>
-          </View>
-
-          <Text style={[styles.section, { color: theme.primary }]}>TIMELINE</Text>
-          <View style={styles.row}>
-            <View style={[styles.field, styles.flex]}>
-              <Text style={[styles.label, { color: theme.textSecondary }]}>START DATE</Text>
-              <TouchableOpacity style={[styles.pickerBtn, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={() => setShowStart(true)}>
-                <Ionicons name="calendar" size={16} color={theme.primary} />
-                <Text style={[styles.pickerText, { color: theme.text }]}>{format(startDate, 'MMM d, yyyy')}</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={[styles.field, styles.flex]}>
-              <Text style={[styles.label, { color: theme.textSecondary }]}>DEADLINE</Text>
-              <TouchableOpacity style={[styles.pickerBtn, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={() => setShowDeadline(true)}>
-                <Ionicons name="flag" size={16} color={theme.high} />
-                <Text style={[styles.pickerText, { color: theme.text }]}>{format(deadline, 'MMM d, yyyy')}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-          <Field label="MILESTONE NOTES"><TextInput style={[inp, { height: 80 }]} value={milestoneNotes} onChangeText={setMilestoneNotes} placeholder="Key milestones..." placeholderTextColor={theme.disabled} multiline textAlignVertical="top" /></Field>
-
-          <Text style={[styles.section, { color: theme.primary }]}>STATUS</Text>
-          <View style={styles.statusRow}>
-            {STATUSES.map((s) => (
-              <TouchableOpacity key={s} onPress={() => setStatus(s)}
-                style={[styles.statusChip, { backgroundColor: status === s ? theme.primary : theme.surface, borderColor: status === s ? theme.primary : theme.border }]}>
-                <Text style={[styles.statusText, { color: status === s ? '#FFF' : theme.textSecondary }]}>{s}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <View style={{ height: 16 }} />
-        </ScrollView>
-
-        <View style={[styles.footer, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
-          <TouchableOpacity style={[styles.saveBtn, { backgroundColor: theme.primary, opacity: loading ? 0.6 : 1 }]} onPress={handleSave} disabled={loading} activeOpacity={0.85}>
-            <Ionicons name="checkmark-circle" size={22} color="#FFF" />
-            <Text style={styles.saveBtnText}>{loading ? 'Creating...' : 'Create Project'}</Text>
-          </TouchableOpacity>
+      {/* keyboardShouldPersistTaps="handled" prevents keyboard dismissal on Android */}
+      <ScrollView
+        contentContainerStyle={styles.form}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="none"
+      >
+        <Text style={[styles.section, { color: theme.primary }]}>PROJECT INFO</Text>
+        <View style={styles.field}>
+          <Text style={[styles.label, { color: theme.textSecondary }]}>PROJECT NAME *</Text>
+          <TextInput style={inp} value={name} onChangeText={setName} placeholder="e.g. E-commerce Website" placeholderTextColor={theme.disabled} />
         </View>
-      </KeyboardAvoidingView>
+        <View style={styles.field}>
+          <Text style={[styles.label, { color: theme.textSecondary }]}>DESCRIPTION</Text>
+          <TextInput style={[inp, { height: 80 }]} value={description} onChangeText={setDescription} placeholder="Brief description" placeholderTextColor={theme.disabled} multiline textAlignVertical="top" />
+        </View>
+
+        <Text style={[styles.section, { color: theme.primary }]}>CLIENT INFO</Text>
+        <View style={styles.field}>
+          <Text style={[styles.label, { color: theme.textSecondary }]}>CLIENT NAME *</Text>
+          <TextInput style={inp} value={clientName} onChangeText={setClientName} placeholder="Client full name" placeholderTextColor={theme.disabled} />
+        </View>
+        <View style={styles.row}>
+          <View style={[styles.field, styles.flex]}>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>PHONE</Text>
+            <TextInput style={inp} value={clientPhone} onChangeText={setClientPhone} placeholder="+91 XXXXX" placeholderTextColor={theme.disabled} keyboardType="phone-pad" />
+          </View>
+          <View style={[styles.field, styles.flex]}>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>COMPANY</Text>
+            <TextInput style={inp} value={clientCompany} onChangeText={setClientCompany} placeholder="Company name" placeholderTextColor={theme.disabled} />
+          </View>
+        </View>
+        <View style={styles.field}>
+          <Text style={[styles.label, { color: theme.textSecondary }]}>EMAIL</Text>
+          <TextInput style={inp} value={clientEmail} onChangeText={setClientEmail} placeholder="client@email.com" placeholderTextColor={theme.disabled} keyboardType="email-address" autoCapitalize="none" />
+        </View>
+
+        <Text style={[styles.section, { color: theme.primary }]}>FINANCIALS</Text>
+        <View style={styles.row}>
+          <View style={[styles.field, styles.flex]}>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>TOTAL COST (₹) *</Text>
+            <TextInput style={inp} value={totalCost} onChangeText={setTotalCost} placeholder="0" placeholderTextColor={theme.disabled} keyboardType="numeric" />
+          </View>
+          <View style={[styles.field, styles.flex]}>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>ADVANCE PAID (₹)</Text>
+            <TextInput style={inp} value={advancePaid} onChangeText={setAdvancePaid} placeholder="0" placeholderTextColor={theme.disabled} keyboardType="numeric" />
+          </View>
+        </View>
+
+        <Text style={[styles.section, { color: theme.primary }]}>TIMELINE</Text>
+        <View style={styles.row}>
+          <View style={[styles.field, styles.flex]}>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>START DATE</Text>
+            <TouchableOpacity style={[styles.pickerBtn, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={() => setShowStart(true)}>
+              <Ionicons name="calendar" size={16} color={theme.primary} />
+              <Text style={[styles.pickerText, { color: theme.text }]}>{format(startDate, 'MMM d, yyyy')}</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={[styles.field, styles.flex]}>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>DEADLINE</Text>
+            <TouchableOpacity style={[styles.pickerBtn, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={() => setShowDeadline(true)}>
+              <Ionicons name="flag" size={16} color={theme.high} />
+              <Text style={[styles.pickerText, { color: theme.text }]}>{format(deadline, 'MMM d, yyyy')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+        <View style={styles.field}>
+          <Text style={[styles.label, { color: theme.textSecondary }]}>MILESTONE NOTES</Text>
+          <TextInput style={[inp, { height: 80 }]} value={milestoneNotes} onChangeText={setMilestoneNotes} placeholder="Key milestones..." placeholderTextColor={theme.disabled} multiline textAlignVertical="top" />
+        </View>
+
+        <Text style={[styles.section, { color: theme.primary }]}>STATUS</Text>
+        <View style={styles.statusRow}>
+          {STATUSES.map((s) => (
+            <TouchableOpacity key={s} onPress={() => setStatus(s)}
+              style={[styles.statusChip, { backgroundColor: status === s ? theme.primary : theme.surface, borderColor: status === s ? theme.primary : theme.border }]}>
+              <Text style={[styles.statusText, { color: status === s ? '#FFF' : theme.textSecondary }]}>{s}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <TouchableOpacity style={[styles.saveBtn, { backgroundColor: theme.primary, opacity: loading ? 0.6 : 1, marginTop: 24 }]} onPress={handleSave} disabled={loading} activeOpacity={0.85}>
+          <Ionicons name="checkmark-circle" size={22} color="#FFF" />
+          <Text style={styles.saveBtnText}>{loading ? 'Creating...' : 'Create Project'}</Text>
+        </TouchableOpacity>
+
+        <View style={{ height: 40 }} />
+      </ScrollView>
 
       {showStart && <DateTimePicker value={startDate} mode="date" display="default" onChange={(_, d) => { setShowStart(false); if (d) setStartDate(d); }} />}
       {showDeadline && <DateTimePicker value={deadline} mode="date" display="default" onChange={(_, d) => { setShowDeadline(false); if (d) setDeadline(d); }} />}
@@ -170,7 +180,6 @@ const styles = StyleSheet.create({
   statusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   statusChip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
   statusText: { fontSize: 12, fontWeight: '600' },
-  footer: { padding: 16, borderTopWidth: 1 },
   saveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 15, borderRadius: 14, gap: 8 },
   saveBtnText: { color: '#FFF', fontSize: 17, fontWeight: '700' },
 });

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator, StatusBar, TextInput, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator, StatusBar, TextInput, Modal, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -140,37 +140,39 @@ export default function MaintenanceDetail() {
 
       {/* Payment Modal */}
       <Modal visible={showPayModal} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, { backgroundColor: theme.surface }]}>
-            <Text style={[styles.modalTitle, { color: theme.text }]}>Record Renewal Payment</Text>
-            <TextInput style={[styles.modalInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
-              value={payAmount} onChangeText={setPayAmount} placeholder={`Amount (₹${m.cost?.toLocaleString('en-IN')})`} placeholderTextColor={theme.disabled} keyboardType="numeric" />
-            <TouchableOpacity style={[styles.modalInput, { backgroundColor: theme.background, borderColor: theme.border, flexDirection: 'row', alignItems: 'center' }]} onPress={() => setShowPayDate(true)}>
-              <Ionicons name="calendar" size={16} color={theme.primary} style={{ marginRight: 8 }} />
-              <Text style={{ color: theme.text }}>{format(payDate, 'MMM d, yyyy')}</Text>
-            </TouchableOpacity>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                {PAYMENT_MODES.map((pm) => (
-                  <TouchableOpacity key={pm} onPress={() => setPayMode(pm)}
-                    style={[styles.modeChip, { backgroundColor: payMode === pm ? theme.primary : theme.background, borderColor: payMode === pm ? theme.primary : theme.border }]}>
-                    <Text style={{ color: payMode === pm ? '#FFF' : theme.textSecondary, fontSize: 12, fontWeight: '600' }}>{pm}</Text>
-                  </TouchableOpacity>
-                ))}
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalCard, { backgroundColor: theme.surface }]}>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>Record Renewal Payment</Text>
+              <TextInput style={[styles.modalInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
+                value={payAmount} onChangeText={setPayAmount} placeholder={`Amount (₹${m.cost?.toLocaleString('en-IN')})`} placeholderTextColor={theme.disabled} keyboardType="numeric" />
+              <TouchableOpacity style={[styles.modalInput, { backgroundColor: theme.background, borderColor: theme.border, flexDirection: 'row', alignItems: 'center' }]} onPress={() => setShowPayDate(true)}>
+                <Ionicons name="calendar" size={16} color={theme.primary} style={{ marginRight: 8 }} />
+                <Text style={{ color: theme.text }}>{format(payDate, 'MMM d, yyyy')}</Text>
+              </TouchableOpacity>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  {PAYMENT_MODES.map((pm) => (
+                    <TouchableOpacity key={pm} onPress={() => setPayMode(pm)}
+                      style={[styles.modeChip, { backgroundColor: payMode === pm ? theme.primary : theme.background, borderColor: payMode === pm ? theme.primary : theme.border }]}>
+                      <Text style={{ color: payMode === pm ? '#FFF' : theme.textSecondary, fontSize: 12, fontWeight: '600' }}>{pm}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </ScrollView>
+              <TextInput style={[styles.modalInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
+                value={payInvoice} onChangeText={setPayInvoice} placeholder="Invoice note (optional)" placeholderTextColor={theme.disabled} />
+              <View style={styles.modalBtns}>
+                <TouchableOpacity style={[styles.modalBtn, { backgroundColor: theme.border }]} onPress={() => setShowPayModal(false)}>
+                  <Text style={{ color: theme.text, fontWeight: '600' }}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.modalBtn, { backgroundColor: theme.primary, opacity: saving ? 0.6 : 1 }]} onPress={handleAddPayment} disabled={saving}>
+                  <Text style={{ color: '#FFF', fontWeight: '700' }}>{saving ? 'Saving...' : 'Record'}</Text>
+                </TouchableOpacity>
               </View>
-            </ScrollView>
-            <TextInput style={[styles.modalInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
-              value={payInvoice} onChangeText={setPayInvoice} placeholder="Invoice note (optional)" placeholderTextColor={theme.disabled} />
-            <View style={styles.modalBtns}>
-              <TouchableOpacity style={[styles.modalBtn, { backgroundColor: theme.border }]} onPress={() => setShowPayModal(false)}>
-                <Text style={{ color: theme.text, fontWeight: '600' }}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.modalBtn, { backgroundColor: theme.primary, opacity: saving ? 0.6 : 1 }]} onPress={handleAddPayment} disabled={saving}>
-                <Text style={{ color: '#FFF', fontWeight: '700' }}>{saving ? 'Saving...' : 'Record'}</Text>
-              </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {showPayDate && <DateTimePicker value={payDate} mode="date" display="default" onChange={(_, d) => { setShowPayDate(false); if (d) setPayDate(d); }} />}

@@ -2,11 +2,11 @@ from fastapi import FastAPI, APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from sqlalchemy import String, Float, Boolean, Text, DateTime, ForeignKey, Integer, select, func
-from pydantic import BaseModel, EmailStr
-from typing import Optional, List, Union
-from datetime import datetime, timedelta, date
+from sqlalchemy.orm import DeclarativeBase, relationship
+from sqlalchemy import Column, String, Float, Boolean, Text, DateTime, ForeignKey, Integer, select
+from pydantic import BaseModel
+from typing import Optional, List
+from datetime import datetime, timedelta
 from pathlib import Path
 from dotenv import load_dotenv
 from passlib.context import CryptContext
@@ -35,103 +35,103 @@ async def get_db():
     async with SessionLocal() as session:
         yield session
 
-# ── Models ────────────────────────────────────────────────────────────────────
+# ── Models (classic Column style — works on all Python versions) ──────────────
 class User(Base):
     __tablename__ = "users"
-    id:           Mapped[str]  = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    name:         Mapped[str]  = mapped_column(String)
-    email:        Mapped[str]  = mapped_column(String, unique=True, index=True)
-    password_hash:Mapped[str]  = mapped_column(String)
-    created_at:   Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    tasks:        Mapped[List["Task"]]    = relationship(back_populates="user", cascade="all, delete")
-    projects:     Mapped[List["Project"]] = relationship(back_populates="user", cascade="all, delete")
+    id            = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    name          = Column(String, nullable=False)
+    email         = Column(String, unique=True, index=True, nullable=False)
+    password_hash = Column(String, nullable=False)
+    created_at    = Column(DateTime, default=datetime.utcnow)
+    tasks         = relationship("Task", back_populates="user", cascade="all, delete")
+    projects      = relationship("Project", back_populates="user", cascade="all, delete")
 
 class Task(Base):
     __tablename__ = "tasks"
-    id:               Mapped[str]  = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    user_id:          Mapped[str]  = mapped_column(ForeignKey("users.id"))
-    title:            Mapped[str]  = mapped_column(String)
-    description:      Mapped[str]  = mapped_column(Text, default="")
-    date:             Mapped[str]  = mapped_column(String)
-    time:             Mapped[str]  = mapped_column(String)
-    priority:         Mapped[str]  = mapped_column(String, default="Medium")
-    completed:        Mapped[bool] = mapped_column(Boolean, default=False)
-    notification_ids: Mapped[str]  = mapped_column(Text, default="[]")
-    recurrence:       Mapped[str]  = mapped_column(String, default="none")
-    recurrence_days:  Mapped[str]  = mapped_column(Text, default="[]")
-    created_at:       Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    user:             Mapped["User"] = relationship(back_populates="tasks")
+    id               = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id          = Column(String, ForeignKey("users.id"), nullable=False)
+    title            = Column(String, nullable=False)
+    description      = Column(Text, default="")
+    date             = Column(String, nullable=False)
+    time             = Column(String, nullable=False)
+    priority         = Column(String, default="Medium")
+    completed        = Column(Boolean, default=False)
+    notification_ids = Column(Text, default="[]")
+    recurrence       = Column(String, default="none")
+    recurrence_days  = Column(Text, default="[]")
+    created_at       = Column(DateTime, default=datetime.utcnow)
+    user             = relationship("User", back_populates="tasks")
 
 class Project(Base):
     __tablename__ = "projects"
-    id:               Mapped[str]   = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    user_id:          Mapped[str]   = mapped_column(ForeignKey("users.id"))
-    name:             Mapped[str]   = mapped_column(String)
-    description:      Mapped[str]   = mapped_column(Text, default="")
-    client_name:      Mapped[str]   = mapped_column(String)
-    client_phone:     Mapped[str]   = mapped_column(String, default="")
-    client_email:     Mapped[str]   = mapped_column(String, default="")
-    client_company:   Mapped[str]   = mapped_column(String, default="")
-    total_cost:       Mapped[float] = mapped_column(Float, default=0)
-    advance_paid:     Mapped[float] = mapped_column(Float, default=0)
-    start_date:       Mapped[str]   = mapped_column(String, default="")
-    deadline:         Mapped[str]   = mapped_column(String, default="")
-    milestone_notes:  Mapped[str]   = mapped_column(Text, default="")
-    status:           Mapped[str]   = mapped_column(String, default="Not Started")
-    created_at:       Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    user:             Mapped["User"]              = relationship(back_populates="projects")
-    payments:         Mapped[List["ProjectPayment"]]   = relationship(back_populates="project", cascade="all, delete")
-    maintenance:      Mapped[Union["Maintenance", None]]  = relationship(back_populates="project", cascade="all, delete", uselist=False)
-    timeline_notes:   Mapped[List["TimelineNote"]]     = relationship(back_populates="project", cascade="all, delete")
+    id              = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id         = Column(String, ForeignKey("users.id"), nullable=False)
+    name            = Column(String, nullable=False)
+    description     = Column(Text, default="")
+    client_name     = Column(String, nullable=False)
+    client_phone    = Column(String, default="")
+    client_email    = Column(String, default="")
+    client_company  = Column(String, default="")
+    total_cost      = Column(Float, default=0)
+    advance_paid    = Column(Float, default=0)
+    start_date      = Column(String, default="")
+    deadline        = Column(String, default="")
+    milestone_notes = Column(Text, default="")
+    status          = Column(String, default="Not Started")
+    created_at      = Column(DateTime, default=datetime.utcnow)
+    user            = relationship("User", back_populates="projects")
+    payments        = relationship("ProjectPayment", back_populates="project", cascade="all, delete")
+    maintenance     = relationship("Maintenance", back_populates="project", cascade="all, delete", uselist=False)
+    timeline_notes  = relationship("TimelineNote", back_populates="project", cascade="all, delete")
 
 class ProjectPayment(Base):
     __tablename__ = "project_payments"
-    id:           Mapped[str]   = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    project_id:   Mapped[str]   = mapped_column(ForeignKey("projects.id"))
-    amount:       Mapped[float] = mapped_column(Float)
-    payment_date: Mapped[str]   = mapped_column(String)
-    payment_mode: Mapped[str]   = mapped_column(String, default="Cash")
-    note:         Mapped[str]   = mapped_column(Text, default="")
-    created_at:   Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    project:      Mapped["Project"] = relationship(back_populates="payments")
+    id           = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    project_id   = Column(String, ForeignKey("projects.id"), nullable=False)
+    amount       = Column(Float, nullable=False)
+    payment_date = Column(String, nullable=False)
+    payment_mode = Column(String, default="Cash")
+    note         = Column(Text, default="")
+    created_at   = Column(DateTime, default=datetime.utcnow)
+    project      = relationship("Project", back_populates="payments")
 
 class TimelineNote(Base):
     __tablename__ = "project_timeline_notes"
-    id:         Mapped[str]  = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    project_id: Mapped[str]  = mapped_column(ForeignKey("projects.id"))
-    note:       Mapped[str]  = mapped_column(Text)
-    note_date:  Mapped[str]  = mapped_column(String)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    project:    Mapped["Project"] = relationship(back_populates="timeline_notes")
+    id         = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    project_id = Column(String, ForeignKey("projects.id"), nullable=False)
+    note       = Column(Text, nullable=False)
+    note_date  = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    project    = relationship("Project", back_populates="timeline_notes")
 
 class Maintenance(Base):
     __tablename__ = "maintenance_contracts"
-    id:             Mapped[str]   = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    project_id:     Mapped[str]   = mapped_column(ForeignKey("projects.id"), unique=True)
-    plan_name:      Mapped[str]   = mapped_column(String, default="")
-    start_date:     Mapped[str]   = mapped_column(String)
-    cost:           Mapped[float] = mapped_column(Float, default=0)
-    billing_cycle:  Mapped[str]   = mapped_column(String, default="Monthly")
-    notes:          Mapped[str]   = mapped_column(Text, default="")
-    renewal_status: Mapped[str]   = mapped_column(String, default="Active")
-    next_due_date:  Mapped[str]   = mapped_column(String, default="")
-    total_renewals: Mapped[int]   = mapped_column(Integer, default=0)
-    created_at:     Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    project:        Mapped["Project"]              = relationship(back_populates="maintenance")
-    payments:       Mapped[List["MaintenancePayment"]] = relationship(back_populates="maintenance", cascade="all, delete")
+    id             = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    project_id     = Column(String, ForeignKey("projects.id"), unique=True, nullable=False)
+    plan_name      = Column(String, default="")
+    start_date     = Column(String, nullable=False)
+    cost           = Column(Float, default=0)
+    billing_cycle  = Column(String, default="Monthly")
+    notes          = Column(Text, default="")
+    renewal_status = Column(String, default="Active")
+    next_due_date  = Column(String, default="")
+    total_renewals = Column(Integer, default=0)
+    created_at     = Column(DateTime, default=datetime.utcnow)
+    project        = relationship("Project", back_populates="maintenance")
+    payments       = relationship("MaintenancePayment", back_populates="maintenance", cascade="all, delete")
 
 class MaintenancePayment(Base):
     __tablename__ = "maintenance_payments"
-    id:             Mapped[str]   = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    maintenance_id: Mapped[str]   = mapped_column(ForeignKey("maintenance_contracts.id"))
-    amount:         Mapped[float] = mapped_column(Float)
-    paid_date:      Mapped[str]   = mapped_column(String)
-    billing_cycle:  Mapped[str]   = mapped_column(String)
-    payment_mode:   Mapped[str]   = mapped_column(String, default="Cash")
-    invoice_note:   Mapped[str]   = mapped_column(Text, default="")
-    next_due_date:  Mapped[str]   = mapped_column(String, default="")
-    created_at:     Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    maintenance:    Mapped["Maintenance"] = relationship(back_populates="payments")
+    id             = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    maintenance_id = Column(String, ForeignKey("maintenance_contracts.id"), nullable=False)
+    amount         = Column(Float, nullable=False)
+    paid_date      = Column(String, nullable=False)
+    billing_cycle  = Column(String, nullable=False)
+    payment_mode   = Column(String, default="Cash")
+    invoice_note   = Column(Text, default="")
+    next_due_date  = Column(String, default="")
+    created_at     = Column(DateTime, default=datetime.utcnow)
+    maintenance    = relationship("Maintenance", back_populates="payments")
 
 # ── Auth helpers ──────────────────────────────────────────────────────────────
 pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")

@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sess
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy import String, Float, Boolean, Text, DateTime, ForeignKey, Integer, select, func
 from pydantic import BaseModel, EmailStr
-from typing import Optional, List
+from typing import Optional, List, Union
 from datetime import datetime, timedelta, date
 from pathlib import Path
 from dotenv import load_dotenv
@@ -81,7 +81,7 @@ class Project(Base):
     created_at:       Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     user:             Mapped["User"]              = relationship(back_populates="projects")
     payments:         Mapped[List["ProjectPayment"]]   = relationship(back_populates="project", cascade="all, delete")
-    maintenance:      Mapped[Optional["Maintenance"]]  = relationship(back_populates="project", cascade="all, delete", uselist=False)
+    maintenance:      Mapped[Union["Maintenance", None]]  = relationship(back_populates="project", cascade="all, delete", uselist=False)
     timeline_notes:   Mapped[List["TimelineNote"]]     = relationship(back_populates="project", cascade="all, delete")
 
 class ProjectPayment(Base):

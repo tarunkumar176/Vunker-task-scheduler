@@ -10,6 +10,7 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,7 +28,7 @@ type Priority = 'High' | 'Medium' | 'Low';
 export default function EditTask() {
   const router = useRouter();
   const { taskId } = useLocalSearchParams<{ taskId: string }>();
-  const { theme } = useThemeStore();
+  const { theme, mode } = useThemeStore();
   const { updateTask } = useTaskStore();
   
   const [loading, setLoading] = useState(true);
@@ -142,12 +143,12 @@ export default function EditTask() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={theme.text} />
+      <View style={[styles.header, { backgroundColor: theme.headerBg, borderBottomColor: theme.border }]}>
+        <TouchableOpacity onPress={() => router.back()} style={[styles.backButton, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Ionicons name="arrow-back" size={20} color={theme.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.text }]}>Edit Task</Text>
-        <View style={{ width: 40 }} />
+        <View style={{ width: 38 }} />
       </View>
 
       <KeyboardAvoidingView
@@ -157,7 +158,7 @@ export default function EditTask() {
         <ScrollView style={styles.form} contentContainerStyle={styles.formContent}>
           {/* Title */}
           <View style={styles.field}>
-            <Text style={[styles.label, { color: theme.text }]}>Title *</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>TASK TITLE *</Text>
             <TextInput
               style={[
                 styles.input,
@@ -176,7 +177,7 @@ export default function EditTask() {
 
           {/* Description */}
           <View style={styles.field}>
-            <Text style={[styles.label, { color: theme.text }]}>Description</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>DESCRIPTION</Text>
             <TextInput
               style={[
                 styles.input,
@@ -199,7 +200,7 @@ export default function EditTask() {
 
           {/* Date */}
           <View style={styles.field}>
-            <Text style={[styles.label, { color: theme.text }]}>Date *</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>DATE *</Text>
             <TouchableOpacity
               style={[
                 styles.pickerButton,
@@ -216,7 +217,7 @@ export default function EditTask() {
 
           {/* Time */}
           <View style={styles.field}>
-            <Text style={[styles.label, { color: theme.text }]}>Time *</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>TIME *</Text>
             <TouchableOpacity
               style={[
                 styles.pickerButton,
@@ -233,7 +234,7 @@ export default function EditTask() {
 
           {/* Priority */}
           <View style={styles.field}>
-            <Text style={[styles.label, { color: theme.text }]}>Priority *</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>PRIORITY *</Text>
             <View style={styles.priorityContainer}>
               {(['High', 'Medium', 'Low'] as Priority[]).map((p) => {
                 const isSelected = priority === p;
@@ -291,8 +292,7 @@ export default function EditTask() {
             <Text style={styles.saveButtonText}>
               {saving ? 'Updating...' : 'Update Task'}
             </Text>
-          </TouchableOpacity>
-        </View>
+          </TouchableOpacity>        </View>
       </KeyboardAvoidingView>
 
       {/* Date Picker */}
@@ -337,12 +337,14 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   backButton: {
-    width: 40,
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
+  headerTitle: { fontSize: 18, fontWeight: '700' },
   content: {
     flex: 1,
   },
@@ -356,8 +358,9 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   label: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.8,
     marginBottom: 8,
   },
   input: {

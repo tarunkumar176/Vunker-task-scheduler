@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Task Reminder",
+    "name": "Vynker Scheduler",
     "slug": "task-reminder",
     "version": "2.0.0",
     "orientation": "portrait",
@@ -9,7 +9,7 @@
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#2196F3"
+      "backgroundColor": "#1A1A2E"
     },
     "ios": {
       "supportsTablet": true,
@@ -21,10 +21,10 @@
       }
     },
     "android": {
-      "package": "com.taskreminder.app",
+      "package": "com.vynker.scheduler",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#2196F3"
+        "backgroundColor": "#1A1A2E"
       },
       "edgeToEdgeEnabled": true,
       "permissions": [
@@ -46,7 +46,7 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#2196F3"
+          "backgroundColor": "#1A1A2E"
         }
       ],
       "expo-notifications",
@@ -61,6 +61,7 @@
       "eas": {
         "projectId": "1b373adf-2dfa-498a-9a4a-08cf69edaf23"
       }
-    }
+    },
+    "owner": "tarun1"
   }
 }

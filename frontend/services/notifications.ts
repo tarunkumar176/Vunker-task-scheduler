@@ -1,7 +1,8 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { Task } from './database';
-import { format, subHours, subMinutes, parseISO } from 'date-fns';
+import { subHours, subMinutes, parseISO } from 'date-fns';
+import { SchedulableTriggerInputTypes } from 'expo-notifications';
 
 // Check if notifications are available
 let notificationsAvailable = true;
@@ -86,10 +87,33 @@ export const scheduleTaskNotifications = async (task: Task): Promise<string[]> =
     }
     
     // Calculate notification times
+    const oneDayBefore8am = new Date(taskDateTime);
+    oneDayBefore8am.setDate(oneDayBefore8am.getDate());
+    oneDayBefore8am.setHours(8, 0, 0, 0); // 8 AM on the day of the event
     const oneHourBefore = subHours(taskDateTime, 1);
     const tenMinsBefore = subMinutes(taskDateTime, 10);
     
-    // Notification 1 hour before (only if more than 1 hour away)
+    // Notification on the day of the event at 8 AM
+    if (oneDayBefore8am > now && oneDayBefore8am < taskDateTime) {
+      console.log(`Scheduling day-of notification for: ${oneDayBefore8am.toLocaleString()}`);
+      const dayOfId = await Notifications.scheduleNotificationAsync({
+        content: {
+          title: '📅 Task today!',
+          body: `"${task.title}" is scheduled for ${task.time}`,
+          data: { taskId: task.id, type: 'dayof' },
+          sound: 'default',
+          priority: Notifications.AndroidNotificationPriority.HIGH,
+        },
+        trigger: {
+          type: SchedulableTriggerInputTypes.DATE,
+          date: oneDayBefore8am,
+          channelId: 'reminders',
+        },
+      });
+      notificationIds.push(dayOfId);
+    }
+
+    // Notification 1 hour before
     if (oneHourBefore > now) {
       console.log(`Scheduling 1-hour notification for: ${oneHourBefore.toLocaleString()}`);
       const oneHourId = await Notifications.scheduleNotificationAsync({
@@ -101,6 +125,7 @@ export const scheduleTaskNotifications = async (task: Task): Promise<string[]> =
           priority: Notifications.AndroidNotificationPriority.HIGH,
         },
         trigger: {
+          type: SchedulableTriggerInputTypes.DATE,
           date: oneHourBefore,
           channelId: 'reminders',
         },
@@ -109,8 +134,8 @@ export const scheduleTaskNotifications = async (task: Task): Promise<string[]> =
     } else {
       console.log('Skipping 1-hour notification (too soon)');
     }
-    
-    // Notification 10 minutes before (only if more than 10 minutes away)
+
+    // Notification 10 minutes before
     if (tenMinsBefore > now) {
       console.log(`Scheduling 10-min notification for: ${tenMinsBefore.toLocaleString()}`);
       const tenMinsId = await Notifications.scheduleNotificationAsync({
@@ -122,6 +147,7 @@ export const scheduleTaskNotifications = async (task: Task): Promise<string[]> =
           priority: Notifications.AndroidNotificationPriority.HIGH,
         },
         trigger: {
+          type: SchedulableTriggerInputTypes.DATE,
           date: tenMinsBefore,
           channelId: 'reminders',
         },
@@ -130,18 +156,19 @@ export const scheduleTaskNotifications = async (task: Task): Promise<string[]> =
     } else {
       console.log('Skipping 10-min notification (too soon)');
     }
-    
-    // Notification at task time (always schedule if task is in future)
+
+    // Notification at task time
     console.log(`Scheduling main notification for: ${taskDateTime.toLocaleString()}`);
     const mainId = await Notifications.scheduleNotificationAsync({
       content: {
-        title: '⏰ Task Reminder',
+        title: '🔔 Time for your task!',
         body: task.title,
         data: { taskId: task.id, type: 'main' },
         sound: 'default',
         priority: Notifications.AndroidNotificationPriority.HIGH,
       },
       trigger: {
+        type: SchedulableTriggerInputTypes.DATE,
         date: taskDateTime,
         channelId: 'reminders',
       },

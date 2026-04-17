@@ -125,15 +125,14 @@ class Expense(Base):
     id           = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id      = Column(String, ForeignKey("users.id"), nullable=False)
     project_id   = Column(String, ForeignKey("projects.id"), nullable=True)
-    type         = Column(String, nullable=False)          # 'income' | 'expense'
+    type         = Column(String, nullable=False)
     category     = Column(String, nullable=False)
     amount       = Column(Float, nullable=False)
     description  = Column(Text, default="")
-    date         = Column(String, nullable=False)          # YYYY-MM-DD
+    date         = Column(String, nullable=False)
     is_recurring = Column(Boolean, default=False)
-    recur_cycle  = Column(String, default="")              # Monthly | Quarterly | Yearly
+    recur_cycle  = Column(String, default="")
     created_at   = Column(DateTime, default=datetime.utcnow)
-    user         = relationship("User", foreign_keys=[user_id])
     project      = relationship("Project", foreign_keys=[project_id])
     __tablename__ = "maintenance_payments"
     id             = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
@@ -653,7 +652,7 @@ def expense_out(e: Expense) -> dict:
 
 @router.get("/expenses")
 async def get_expenses(
-    month: Optional[str] = None,   # YYYY-MM
+    month: Optional[str] = None,
     type: Optional[str] = None,
     project_id: Optional[str] = None,
     user: User = Depends(get_current_user),
@@ -733,6 +732,7 @@ async def create_expense(body: ExpenseIn, user: User = Depends(get_current_user)
     db.add(e)
     await db.commit()
     await db.refresh(e)
+    # Load with project relationship
     result = await db.execute(select(Expense).where(Expense.id == e.id).options(selectinload(Expense.project)))
     return expense_out(result.scalar_one())
 

@@ -14,16 +14,31 @@ const request = async (method: string, path: string, body?: any, auth = true): P
     const token = await getToken();
     if (token) headers['Authorization'] = `Bearer ${token}`;
   }
-  const res = await fetch(`${API_BASE}/api${path}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: 'Network error' }));
-    throw new Error(err.detail || `HTTP ${res.status}`);
+
+  // AbortController for timeout — 30 seconds to handle Render cold start
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
+
+  try {
+    const res = await fetch(`${API_BASE}/api${path}`, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Network error' }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    return res.json();
+  } catch (e: any) {
+    clearTimeout(timeout);
+    if (e.name === 'AbortError') {
+      throw new Error('Request timed out. The server may be waking up — please try again in a moment.');
+    }
+    throw new Error(e.message || 'Network error. Check your internet connection.');
   }
-  return res.json();
 };
 
 export const api = {
@@ -79,6 +94,23 @@ export const maintenanceApi = {
   update: (projectId: string, data: any) => api.put(`/projects/${projectId}/maintenance`, data),
   addPayment: (projectId: string, data: any) => api.post(`/projects/${projectId}/maintenance/payments`, data),
   getUpcoming: () => api.get('/maintenance/upcoming'),
+};
+
+// Expenses
+export const expensesApi = {
+  getAll: (params?: { month?: string; type?: string; project_id?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.month) q.set('month', params.month);
+    if (params?.type) q.set('type', params.type);
+    if (params?.project_id) q.set('project_id', params.project_id);
+    const qs = q.toString();
+    return api.get(`/expenses${qs ? '?' + qs : ''}`);
+  },
+  getSummary: (month?: string) => api.get(`/expenses/summary${month ? '?month=' + month : ''}`),
+  getMonthlyReport: (year?: string) => api.get(`/expenses/monthly-report${year ? '?year=' + year : ''}`),
+  create: (data: any) => api.post('/expenses', data),
+  update: (id: string, data: any) => api.put(`/expenses/${id}`, data),
+  delete: (id: string) => api.delete(`/expenses/${id}`),
 };
 
 // Dashboard

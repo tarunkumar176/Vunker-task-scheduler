@@ -1,20 +1,24 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, StatusBar } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, StatusBar, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { useThemeStore } from '../../store/themeStore';
 import { useProjectStore } from '../../store/projectStore';
 
 const STATUSES = ['Not Started', 'In Progress', 'Completed', 'Payment Pending', 'Closed'];
 
-export default function AddProject() {
+export default function AddEditProject() {
   const router = useRouter();
-  const { theme, mode } = useThemeStore();
-  const { createProject } = useProjectStore();
+  const { editId } = useLocalSearchParams<{ editId?: string }>();
+  const isEdit = !!editId;
 
+  const { theme, mode } = useThemeStore();
+  const { createProject, updateProject, loadProject, currentProject } = useProjectStore();
+
+  const [initializing, setInitializing] = useState(isEdit);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [clientName, setClientName] = useState('');
@@ -31,32 +35,94 @@ export default function AddProject() {
   const [showDeadline, setShowDeadline] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Load existing project data when editing
+  useEffect(() => {
+    if (!isEdit) return;
+    const load = async () => {
+      try {
+        await loadProject(editId!);
+      } catch {
+        Alert.alert('Error', 'Failed to load project details');
+        router.back();
+      } finally {
+        setInitializing(false);
+      }
+    };
+    load();
+  }, [editId]);
+
+  // Pre-fill fields once project is loaded
+  useEffect(() => {
+    if (!isEdit || !currentProject) return;
+    const p = currentProject;
+    setName(p.name || '');
+    setDescription(p.description || '');
+    setClientName(p.client_name || '');
+    setClientPhone(p.client_phone || '');
+    setClientEmail(p.client_email || '');
+    setClientCompany(p.client_company || '');
+    setTotalCost(p.total_cost?.toString() || '');
+    setAdvancePaid(p.advance_paid?.toString() || '');
+    setStatus(p.status || 'Not Started');
+    setMilestoneNotes(p.milestone_notes || '');
+    if (p.start_date) {
+      try { setStartDate(parseISO(p.start_date)); } catch {}
+    }
+    if (p.deadline) {
+      try { setDeadline(parseISO(p.deadline)); } catch {}
+    }
+  }, [currentProject]);
+
   const handleSave = async () => {
     if (!name.trim()) { Alert.alert('Required', 'Project name is required'); return; }
     if (!clientName.trim()) { Alert.alert('Required', 'Client name is required'); return; }
     if (!totalCost || isNaN(Number(totalCost))) { Alert.alert('Required', 'Enter a valid total cost'); return; }
+
     setLoading(true);
     try {
-      const project = await createProject({
-        name: name.trim(), description: description.trim(),
-        client_name: clientName.trim(), client_phone: clientPhone.trim(),
-        client_email: clientEmail.trim(), client_company: clientCompany.trim(),
-        total_cost: Number(totalCost), advance_paid: Number(advancePaid) || 0,
-        status, start_date: format(startDate, 'yyyy-MM-dd'),
-        deadline: format(deadline, 'yyyy-MM-dd'), milestone_notes: milestoneNotes.trim(),
-      });
-      Alert.alert('Project Created', `"${name}" has been added.`, [
-        { text: 'View Project', onPress: () => router.replace({ pathname: '/projects/[id]', params: { id: project.id } }) },
-        { text: 'Back to Projects', onPress: () => router.replace('/projects') },
-      ]);
+      const payload = {
+        name: name.trim(),
+        description: description.trim(),
+        client_name: clientName.trim(),
+        client_phone: clientPhone.trim(),
+        client_email: clientEmail.trim(),
+        client_company: clientCompany.trim(),
+        total_cost: Number(totalCost),
+        advance_paid: Number(advancePaid) || 0,
+        status,
+        start_date: format(startDate, 'yyyy-MM-dd'),
+        deadline: format(deadline, 'yyyy-MM-dd'),
+        milestone_notes: milestoneNotes.trim(),
+      };
+
+      if (isEdit) {
+        await updateProject(editId!, payload);
+        Alert.alert('Updated', 'Project details have been updated.', [
+          { text: 'OK', onPress: () => router.back() },
+        ]);
+      } else {
+        const project = await createProject(payload);
+        Alert.alert('Project Created', `"${name}" has been added.`, [
+          { text: 'View Project', onPress: () => router.replace({ pathname: '/projects/[id]', params: { id: project.id } }) },
+          { text: 'Back to Projects', onPress: () => router.replace('/projects') },
+        ]);
+      }
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'Failed to create project. Check your internet connection.');
+      Alert.alert('Error', e.message || 'Something went wrong. Check your connection.');
     } finally {
       setLoading(false);
     }
   };
 
   const inp = [styles.input, { backgroundColor: theme.surface, color: theme.text, borderColor: theme.border }] as any;
+
+  if (initializing) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+        <View style={styles.center}><ActivityIndicator size="large" color={theme.primary} /></View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
@@ -65,11 +131,10 @@ export default function AddProject() {
         <TouchableOpacity onPress={() => router.back()} style={[styles.iconBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Ionicons name="arrow-back" size={20} color={theme.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>New Project</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>{isEdit ? 'Edit Project' : 'New Project'}</Text>
         <View style={{ width: 38 }} />
       </View>
 
-      {/* keyboardShouldPersistTaps="handled" prevents keyboard dismissal on Android */}
       <ScrollView
         contentContainerStyle={styles.form}
         showsVerticalScrollIndicator={false}
@@ -150,9 +215,12 @@ export default function AddProject() {
           ))}
         </View>
 
-        <TouchableOpacity style={[styles.saveBtn, { backgroundColor: theme.primary, opacity: loading ? 0.6 : 1, marginTop: 24 }]} onPress={handleSave} disabled={loading} activeOpacity={0.85}>
+        <TouchableOpacity
+          style={[styles.saveBtn, { backgroundColor: theme.primary, opacity: loading ? 0.6 : 1, marginTop: 24 }]}
+          onPress={handleSave} disabled={loading} activeOpacity={0.85}
+        >
           <Ionicons name="checkmark-circle" size={22} color="#FFF" />
-          <Text style={styles.saveBtnText}>{loading ? 'Creating...' : 'Create Project'}</Text>
+          <Text style={styles.saveBtnText}>{loading ? (isEdit ? 'Updating...' : 'Creating...') : (isEdit ? 'Update Project' : 'Create Project')}</Text>
         </TouchableOpacity>
 
         <View style={{ height: 40 }} />
@@ -166,6 +234,7 @@ export default function AddProject() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 }, flex: { flex: 1 },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1 },
   iconBtn: { width: 38, height: 38, borderRadius: 10, borderWidth: 1, justifyContent: 'center', alignItems: 'center' },
   headerTitle: { fontSize: 18, fontWeight: '700' },

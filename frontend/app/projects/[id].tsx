@@ -8,6 +8,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { format } from 'date-fns';
 import { useThemeStore } from '../../store/themeStore';
 import { useProjectStore } from '../../store/projectStore';
+import { expensesApi } from '../../services/api';
 
 const STATUS_COLORS: Record<string, string> = {
   'Not Started': '#9B99B8', 'In Progress': '#6C63FF', 'Completed': '#2ED573',
@@ -38,7 +39,23 @@ export default function ProjectDetail() {
   const [showMStart, setShowMStart] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => { if (id) loadProject(id); }, [id]);
+  const STATUSES = ['Not Started', 'In Progress', 'Completed', 'Payment Pending', 'Closed'];
+  const [statusChanging, setStatusChanging] = useState(false);
+
+  const handleStatusChange = async (newStatus: string) => {
+    if (newStatus === p?.status) return;
+    setStatusChanging(true);
+    try {
+      await updateProject(id!, { status: newStatus });
+      if (newStatus === 'Completed' && !p?.maintenance) {
+        Alert.alert('Setup Maintenance?', 'Would you like to set up a maintenance contract for this project?', [
+          { text: 'No', style: 'cancel' },
+          { text: 'Yes', onPress: () => setShowMaintenanceModal(true) },
+        ]);
+      }
+    } catch (e: any) { Alert.alert('Error', e.message); }
+    finally { setStatusChanging(false); }
+  };
 
   const p = currentProject;
 
@@ -47,6 +64,19 @@ export default function ProjectDetail() {
     setSaving(true);
     try {
       await addPayment(id!, { amount: Number(payAmount), payment_date: format(payDate, 'yyyy-MM-dd'), payment_mode: payMode, note: payNote });
+      // Auto-create income entry in expenses
+      try {
+        await expensesApi.create({
+          type: 'income',
+          category: 'Project Payment',
+          amount: Number(payAmount),
+          description: `Payment from ${p?.client_name || 'client'} · ${p?.name}${payNote ? ' · ' + payNote : ''}`,
+          date: format(payDate, 'yyyy-MM-dd'),
+          project_id: id,
+          is_recurring: false,
+          recur_cycle: '',
+        });
+      } catch (_) { /* silently ignore if expense creation fails */ }
       setShowPayModal(false); setPayAmount(''); setPayNote(''); setPayMode('Cash');
     } catch (e: any) { Alert.alert('Error', e.message); }
     finally { setSaving(false); }
@@ -133,6 +163,23 @@ export default function ProjectDetail() {
           <Text style={[styles.clientName, { color: theme.text }]}>{p.client_name}{p.client_company ? ` · ${p.client_company}` : ''}</Text>
           {p.client_phone ? <Text style={[styles.clientInfo, { color: theme.textSecondary }]}>📞 {p.client_phone}</Text> : null}
           {p.client_email ? <Text style={[styles.clientInfo, { color: theme.textSecondary }]}>✉️ {p.client_email}</Text> : null}
+        </View>
+
+        {/* Status Quick Change */}
+        <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>PROJECT STATUS</Text>
+          <View style={styles.statusRow}>
+            {['Not Started', 'In Progress', 'Payment Pending', 'Completed', 'Closed'].map((s) => {
+              const color = STATUS_COLORS[s] || '#9B99B8';
+              const isActive = p.status === s;
+              return (
+                <TouchableOpacity key={s} onPress={() => handleStatusChange(s)} disabled={statusChanging}
+                  style={[styles.statusChip, { backgroundColor: isActive ? color : color + '15', borderColor: isActive ? color : color + '40' }]}>
+                  <Text style={[styles.statusChipText, { color: isActive ? '#FFF' : color }]} numberOfLines={1}>{s}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
 
         {/* Financials */}
@@ -406,4 +453,7 @@ const styles = StyleSheet.create({
   modalBtns: { flexDirection: 'row', gap: 12, marginTop: 4 },
   modalBtn: { flex: 1, paddingVertical: 13, borderRadius: 12, alignItems: 'center' },
   modeChip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1 },
+  statusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  statusChip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1 },
+  statusChipText: { fontSize: 12, fontWeight: '700' },
 });

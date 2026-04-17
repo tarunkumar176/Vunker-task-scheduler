@@ -8,7 +8,7 @@
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/images/splash-icon.png",
-      "resizeMode": "contain",
+      "resizeMode": "cover",
       "backgroundColor": "#FFFFFF"
     },
     "ios": {
@@ -44,9 +44,8 @@
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#1A1A2E"
+          "resizeMode": "cover",
+          "backgroundColor": "#FFFFFF"
         }
       ],
       "expo-notifications",

@@ -10,6 +10,21 @@ import { useTaskStore } from '../store/taskStore';
 import { dashboardApi } from '../services/api';
 import { format } from 'date-fns';
 
+const MODULE_CONFIG = [
+  { icon: 'calendar', label: 'Task Scheduler', subtitle: 'Reminders & calendar', color: '#5B4FE8', shadow: '#3D33C4', route: '/tasks' },
+  { icon: 'briefcase', label: 'Projects', subtitle: 'Finance & payments', color: '#FF3D57', shadow: '#CC1F38', route: '/projects' },
+  { icon: 'refresh-circle', label: 'Maintenance', subtitle: 'Renewals & contracts', color: '#00C853', shadow: '#008C3A', route: '/maintenance' },
+  { icon: 'wallet', label: 'Expenses', subtitle: 'Income & savings', color: '#FF8C00', shadow: '#CC6E00', route: '/expenses' },
+  { icon: 'settings-sharp', label: 'Settings', subtitle: 'Theme & preferences', color: '#7B6FFF', shadow: '#5A52CC', route: '/settings' },
+];
+
+const STAT_CONFIG = [
+  { key: 'total_projects', label: 'Projects', icon: 'briefcase', color: '#FF3D57' },
+  { key: 'active_projects', label: 'Active', icon: 'flash', color: '#5B4FE8' },
+  { key: 'pending_tasks_today', label: 'Today', icon: 'checkmark-done', color: '#00C853' },
+  { key: 'renewals', label: 'Renewals', icon: 'refresh', color: '#FF8C00' },
+];
+
 export default function Home() {
   const router = useRouter();
   const { theme, mode, toggleTheme } = useThemeStore();
@@ -18,51 +33,35 @@ export default function Home() {
   const [dashboard, setDashboard] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // Reload dashboard every time screen comes into focus
-  useFocusEffect(
-    useCallback(() => {
-      loadDashboard();
-    }, [])
-  );
-
-  // Run migration only once on first mount
-  React.useEffect(() => {
-    runMigration();
-  }, []);
+  useFocusEffect(useCallback(() => { loadDashboard(); }, []));
+  React.useEffect(() => { runMigration(); }, []);
 
   const loadDashboard = async () => {
-    try {
-      const data = await dashboardApi.get();
-      setDashboard(data);
-    } catch (e) {
-      console.log('Dashboard load error:', e);
-    } finally {
-      setLoading(false);
-    }
+    try { const data = await dashboardApi.get(); setDashboard(data); }
+    catch (e) { console.log('Dashboard error:', e); }
+    finally { setLoading(false); }
   };
 
   const runMigration = async () => {
     try {
       const result = await migrateLocalData();
-      if (result.migrated > 0) {
-        Alert.alert('Data Migrated', `${result.migrated} local tasks have been synced to your account.`);
-      }
+      if (result.migrated > 0) Alert.alert('Data Synced', `${result.migrated} local tasks synced to your account.`);
     } catch (_) {}
   };
 
   const handleLogout = () => {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+    Alert.alert('Sign Out', 'Are you sure?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign Out', style: 'destructive', onPress: async () => { await logout(); router.replace('/login'); } },
+      { text: 'Sign Out', style: 'destructive', onPress: async () => { await logout(); router.replace('/login' as any); } },
     ]);
   };
 
-  const modules = [
-    { icon: 'calendar', label: 'Task Scheduler', subtitle: 'Reminders & calendar', color: '#6C63FF', bg: '#6C63FF18', route: '/tasks' },
-    { icon: 'briefcase', label: 'Projects', subtitle: 'Finance & payments', color: '#FF6B6B', bg: '#FF6B6B18', route: '/projects' },
-    { icon: 'refresh-circle', label: 'Maintenance', subtitle: 'Renewals & contracts', color: '#2ED573', bg: '#2ED57318', route: '/maintenance' },
-    { icon: 'settings', label: 'Settings', subtitle: 'Theme & preferences', color: '#FF8C42', bg: '#FF8C4218', route: '/settings' },
-  ];
+  const statValues = dashboard ? [
+    dashboard.total_projects,
+    dashboard.active_projects,
+    dashboard.pending_tasks_today,
+    dashboard.upcoming_renewals?.length || 0,
+  ] : [0, 0, 0, 0];
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
@@ -71,84 +70,90 @@ export default function Home() {
       {/* Header */}
       <View style={[styles.header, { backgroundColor: theme.headerBg, borderBottomColor: theme.border }]}>
         <View style={styles.headerLeft}>
-          <View style={[styles.logoMark, { backgroundColor: theme.primary }]}>
-            <Ionicons name="grid" size={18} color="#FFF" />
+          <View style={styles.logoStack}>
+            <View style={[styles.logoShadow, { backgroundColor: theme.primaryDark }]} />
+            <View style={[styles.logoFace, { backgroundColor: theme.primary }]}>
+              <Ionicons name="grid" size={16} color="#FFF" />
+            </View>
           </View>
           <View>
-            <Text style={[styles.appName, { color: theme.primary }]}>Vynker Scheduler</Text>
+            <Text style={[styles.appName, { color: theme.primary }]}>Vynker</Text>
             <Text style={[styles.greeting, { color: theme.textSecondary }]}>
-              Hello, {user?.name?.split(' ')[0] || 'there'} 👋
+              Hey {user?.name?.split(' ')[0] || 'there'} 👋
             </Text>
           </View>
         </View>
         <View style={styles.headerActions}>
           <TouchableOpacity onPress={toggleTheme} style={[styles.iconBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            <Ionicons name={mode === 'light' ? 'moon' : 'sunny'} size={20} color={mode === 'light' ? '#6C63FF' : '#FFB347'} />
+            <Ionicons name={mode === 'light' ? 'moon' : 'sunny'} size={18} color={mode === 'light' ? '#5B4FE8' : '#FFB347'} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleLogout} style={[styles.iconBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            <Ionicons name="log-out-outline" size={20} color={theme.error} />
+          <TouchableOpacity onPress={handleLogout} style={[styles.iconBtn, { backgroundColor: theme.error + '15', borderColor: theme.error + '30' }]}>
+            <Ionicons name="log-out-outline" size={18} color={theme.error} />
           </TouchableOpacity>
         </View>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-        {/* Date */}
-        <Text style={[styles.dateText, { color: theme.textSecondary }]}>{format(new Date(), 'EEEE, MMMM d, yyyy')}</Text>
+        {/* Date banner */}
+        <View style={[styles.dateBanner, { backgroundColor: theme.primary + '12', borderColor: theme.primary + '25' }]}>
+          <Ionicons name="calendar-outline" size={16} color={theme.primary} />
+          <Text style={[styles.dateText, { color: theme.primary }]}>{format(new Date(), 'EEEE, MMMM d, yyyy')}</Text>
+        </View>
 
-        {/* Stats */}
+        {/* Stats row */}
         {loading ? (
-          <ActivityIndicator color={theme.primary} style={{ marginVertical: 20 }} />
-        ) : dashboard ? (
+          <View style={styles.loadingWrap}><ActivityIndicator color={theme.primary} size="large" /></View>
+        ) : (
           <View style={styles.statsRow}>
-            {[
-              { label: 'Projects', value: dashboard.total_projects, icon: 'briefcase', color: '#FF6B6B' },
-              { label: 'Active', value: dashboard.active_projects, icon: 'play-circle', color: '#6C63FF' },
-              { label: 'Tasks Today', value: dashboard.pending_tasks_today, icon: 'checkmark-circle', color: '#2ED573' },
-              { label: 'Renewals', value: dashboard.upcoming_renewals?.length || 0, icon: 'refresh-circle', color: '#FF8C42' },
-            ].map((s) => (
-              <View key={s.label} style={[styles.statCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-                <View style={[styles.statIcon, { backgroundColor: s.color + '20' }]}>
-                  <Ionicons name={s.icon as any} size={18} color={s.color} />
+            {STAT_CONFIG.map((s, i) => (
+              <View key={s.key} style={styles.statWrap}>
+                <View style={[styles.statShadow, { backgroundColor: s.color + '80' }]} />
+                <View style={[styles.statCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+                  <View style={[styles.statIconWrap, { backgroundColor: s.color + '18' }]}>
+                    <Ionicons name={s.icon as any} size={20} color={s.color} />
+                  </View>
+                  <Text style={[styles.statValue, { color: theme.text }]}>{statValues[i]}</Text>
+                  <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{s.label}</Text>
                 </View>
-                <Text style={[styles.statValue, { color: theme.text }]}>{s.value}</Text>
-                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{s.label}</Text>
               </View>
             ))}
           </View>
-        ) : null}
+        )}
 
-        {/* Upcoming Renewals Alert */}
-        {dashboard?.upcoming_renewals?.length > 0 && (
-          <TouchableOpacity
-            style={[styles.alertCard, { backgroundColor: '#FF8C4215', borderColor: '#FF8C42' }]}
-            onPress={() => router.push('/maintenance')}
-          >
-            <Ionicons name="warning" size={20} color="#FF8C42" />
-            <View style={styles.alertText}>
-              <Text style={[styles.alertTitle, { color: '#FF8C42' }]}>
-                {dashboard.upcoming_renewals.length} renewal{dashboard.upcoming_renewals.length > 1 ? 's' : ''} due soon
-              </Text>
-              <Text style={[styles.alertSub, { color: theme.textSecondary }]}>Tap to view maintenance</Text>
+        {/* Renewal alert */}
+        {(dashboard?.upcoming_renewals?.length || 0) > 0 && (
+          <TouchableOpacity onPress={() => router.push('/maintenance' as any)} activeOpacity={0.85}>
+            <View style={styles.alertStack}>
+              <View style={[styles.alertShadow, { backgroundColor: '#CC6E00' }]} />
+              <View style={[styles.alertCard, { backgroundColor: '#FF8C00', }]}>
+                <View style={[styles.alertIconWrap, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                  <Ionicons name="warning" size={20} color="#FFF" />
+                </View>
+                <View style={styles.alertText}>
+                  <Text style={styles.alertTitle}>{dashboard.upcoming_renewals.length} renewal{dashboard.upcoming_renewals.length > 1 ? 's' : ''} due soon</Text>
+                  <Text style={styles.alertSub}>Tap to view maintenance →</Text>
+                </View>
+              </View>
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#FF8C42" />
           </TouchableOpacity>
         )}
 
-        {/* Module Grid */}
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>Modules</Text>
+        {/* Module grid */}
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Quick Access</Text>
         <View style={styles.grid}>
-          {modules.map((m) => (
-            <TouchableOpacity
-              key={m.label}
-              style={[styles.moduleCard, { backgroundColor: theme.card, borderColor: theme.border }]}
-              onPress={() => router.push(m.route as any)}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.moduleIcon, { backgroundColor: m.bg }]}>
-                <Ionicons name={m.icon as any} size={28} color={m.color} />
+          {MODULE_CONFIG.map((m) => (
+            <TouchableOpacity key={m.label} onPress={() => router.push(m.route as any)} activeOpacity={0.85} style={styles.moduleWrap}>
+              <View style={[styles.moduleShadow, { backgroundColor: m.shadow }]} />
+              <View style={[styles.moduleCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+                <View style={[styles.moduleIconWrap, { backgroundColor: m.color }]}>
+                  <Ionicons name={m.icon as any} size={26} color="#FFF" />
+                </View>
+                <Text style={[styles.moduleLabel, { color: theme.text }]}>{m.label}</Text>
+                <Text style={[styles.moduleSub, { color: theme.textSecondary }]}>{m.subtitle}</Text>
+                <View style={[styles.moduleArrow, { backgroundColor: m.color + '18' }]}>
+                  <Ionicons name="arrow-forward" size={14} color={m.color} />
+                </View>
               </View>
-              <Text style={[styles.moduleLabel, { color: theme.text }]}>{m.label}</Text>
-              <Text style={[styles.moduleSub, { color: theme.textSecondary }]}>{m.subtitle}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -163,26 +168,38 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1 },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  logoMark: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-  appName: { fontSize: 16, fontWeight: '700' },
+  logoStack: { width: 34, height: 34, position: 'relative' },
+  logoShadow: { position: 'absolute', width: 34, height: 34, borderRadius: 10, top: 3, left: 3 },
+  logoFace: { position: 'absolute', width: 34, height: 34, borderRadius: 10, justifyContent: 'center', alignItems: 'center', top: 0, left: 0 },
+  appName: { fontSize: 17, fontWeight: '900', letterSpacing: 0.5 },
   greeting: { fontSize: 12, marginTop: 1 },
   headerActions: { flexDirection: 'row', gap: 8 },
-  iconBtn: { width: 38, height: 38, borderRadius: 10, borderWidth: 1, justifyContent: 'center', alignItems: 'center' },
-  scroll: { padding: 16 },
-  dateText: { fontSize: 13, marginBottom: 16 },
-  statsRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
-  statCard: { flex: 1, borderRadius: 14, borderWidth: 1, padding: 10, alignItems: 'center', gap: 4 },
-  statIcon: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-  statValue: { fontSize: 20, fontWeight: '800' },
-  statLabel: { fontSize: 10, fontWeight: '600', textAlign: 'center' },
-  alertCard: { flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 14, borderWidth: 1, gap: 12, marginBottom: 20 },
+  iconBtn: { width: 36, height: 36, borderRadius: 10, borderWidth: 1, justifyContent: 'center', alignItems: 'center' },
+  scroll: { padding: 16, gap: 16 },
+  dateBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, borderWidth: 1 },
+  dateText: { fontSize: 13, fontWeight: '600' },
+  loadingWrap: { height: 100, justifyContent: 'center', alignItems: 'center' },
+  statsRow: { flexDirection: 'row', gap: 10 },
+  statWrap: { flex: 1, position: 'relative', height: 100 },
+  statShadow: { position: 'absolute', bottom: -4, left: 4, right: -4, height: 100, borderRadius: 16 },
+  statCard: { position: 'absolute', top: 0, left: 0, right: 0, height: 100, borderRadius: 16, borderWidth: 1, alignItems: 'center', justifyContent: 'center', gap: 4, elevation: 4, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 8 },
+  statIconWrap: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  statValue: { fontSize: 22, fontWeight: '900' },
+  statLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 0.3 },
+  alertStack: { position: 'relative', height: 64 },
+  alertShadow: { position: 'absolute', bottom: -4, left: 4, right: -4, height: 64, borderRadius: 16 },
+  alertCard: { position: 'absolute', top: 0, left: 0, right: 0, height: 64, borderRadius: 16, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, gap: 12 },
+  alertIconWrap: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
   alertText: { flex: 1 },
-  alertTitle: { fontSize: 14, fontWeight: '700' },
-  alertSub: { fontSize: 12, marginTop: 2 },
-  sectionTitle: { fontSize: 17, fontWeight: '700', marginBottom: 14 },
+  alertTitle: { color: '#FFF', fontSize: 14, fontWeight: '800' },
+  alertSub: { color: 'rgba(255,255,255,0.8)', fontSize: 12, marginTop: 2 },
+  sectionTitle: { fontSize: 18, fontWeight: '800', letterSpacing: 0.3 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  moduleCard: { width: '47%', borderRadius: 16, borderWidth: 1, padding: 16, gap: 8, elevation: 2, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6 },
-  moduleIcon: { width: 52, height: 52, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
-  moduleLabel: { fontSize: 15, fontWeight: '700' },
-  moduleSub: { fontSize: 12 },
+  moduleWrap: { width: '47%', position: 'relative', height: 150 },
+  moduleShadow: { position: 'absolute', bottom: -5, left: 5, right: -5, height: 150, borderRadius: 20 },
+  moduleCard: { position: 'absolute', top: 0, left: 0, right: 0, height: 150, borderRadius: 20, borderWidth: 1, padding: 14, gap: 6, elevation: 6, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 10 },
+  moduleIconWrap: { width: 48, height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
+  moduleLabel: { fontSize: 14, fontWeight: '800' },
+  moduleSub: { fontSize: 11, flex: 1 },
+  moduleArrow: { position: 'absolute', bottom: 12, right: 12, width: 28, height: 28, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
 });

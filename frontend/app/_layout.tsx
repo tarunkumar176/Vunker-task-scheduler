@@ -1,9 +1,15 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 import { useThemeStore } from '../store/themeStore';
+import { startKeepAlive } from '../services/keepAlive';
 
 export default function RootLayout() {
   const { mode } = useThemeStore();
+
+  useEffect(() => {
+    startKeepAlive();
+  }, []);
 
   return (
     <>
@@ -19,6 +25,7 @@ export default function RootLayout() {
         <Stack.Screen name="tasks" />
         <Stack.Screen name="projects" />
         <Stack.Screen name="maintenance" />
+        <Stack.Screen name="expenses" />
       </Stack>
     </>
   );

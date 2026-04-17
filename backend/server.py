@@ -120,7 +120,21 @@ class Maintenance(Base):
     project        = relationship("Project", back_populates="maintenance")
     payments       = relationship("MaintenancePayment", back_populates="maintenance", cascade="all, delete")
 
-class MaintenancePayment(Base):
+class Expense(Base):
+    __tablename__ = "expenses"
+    id           = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id      = Column(String, ForeignKey("users.id"), nullable=False)
+    project_id   = Column(String, ForeignKey("projects.id"), nullable=True)
+    type         = Column(String, nullable=False)          # 'income' | 'expense'
+    category     = Column(String, nullable=False)
+    amount       = Column(Float, nullable=False)
+    description  = Column(Text, default="")
+    date         = Column(String, nullable=False)          # YYYY-MM-DD
+    is_recurring = Column(Boolean, default=False)
+    recur_cycle  = Column(String, default="")              # Monthly | Quarterly | Yearly
+    created_at   = Column(DateTime, default=datetime.utcnow)
+    user         = relationship("User", foreign_keys=[user_id])
+    project      = relationship("Project", foreign_keys=[project_id])
     __tablename__ = "maintenance_payments"
     id             = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     maintenance_id = Column(String, ForeignKey("maintenance_contracts.id"), nullable=False)
@@ -277,8 +291,28 @@ class MaintenancePaymentIn(BaseModel):
     payment_mode: Optional[str] = "Cash"
     invoice_note: Optional[str] = ""
 
+class ExpenseIn(BaseModel):
+    project_id: Optional[str] = None
+    type: str                          # 'income' | 'expense'
+    category: str
+    amount: float
+    description: Optional[str] = ""
+    date: str
+    is_recurring: Optional[bool] = False
+    recur_cycle: Optional[str] = ""
+
+class ExpenseUpdate(BaseModel):
+    project_id: Optional[str] = None
+    type: Optional[str] = None
+    category: Optional[str] = None
+    amount: Optional[float] = None
+    description: Optional[str] = None
+    date: Optional[str] = None
+    is_recurring: Optional[bool] = None
+    recur_cycle: Optional[str] = None
+
 # ── App + Router ──────────────────────────────────────────────────────────────
-app = FastAPI(title="Vynker Scheduler API", version="2.0.0")
+app = FastAPI(title="Vynker API", version="2.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 router = APIRouter(prefix="/api")
 
@@ -603,6 +637,123 @@ async def dashboard(user: User = Depends(get_current_user), db: AsyncSession = D
             upcoming.append({"project_name": m.project.name, "days_left": dl, "cost": m.cost})
     return {"total_projects": len(projects), "active_projects": active,
             "pending_tasks_today": pending_today, "upcoming_renewals": upcoming}
+
+# ── Expense routes ────────────────────────────────────────────────────────────
+def expense_out(e: Expense) -> dict:
+    return {
+        "id": e.id, "user_id": e.user_id,
+        "project_id": e.project_id,
+        "project_name": e.project.name if e.project else None,
+        "type": e.type, "category": e.category,
+        "amount": e.amount, "description": e.description,
+        "date": e.date, "is_recurring": e.is_recurring,
+        "recur_cycle": e.recur_cycle,
+        "created_at": e.created_at.isoformat() if e.created_at else "",
+    }
+
+@router.get("/expenses")
+async def get_expenses(
+    month: Optional[str] = None,   # YYYY-MM
+    type: Optional[str] = None,
+    project_id: Optional[str] = None,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    q = select(Expense).where(Expense.user_id == user.id).options(selectinload(Expense.project))
+    if month:
+        q = q.where(Expense.date.like(f"{month}%"))
+    if type:
+        q = q.where(Expense.type == type)
+    if project_id:
+        q = q.where(Expense.project_id == project_id)
+    q = q.order_by(Expense.date.desc())
+    result = await db.execute(q)
+    return [expense_out(e) for e in result.scalars().all()]
+
+@router.get("/expenses/summary")
+async def get_expense_summary(
+    month: Optional[str] = None,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    q = select(Expense).where(Expense.user_id == user.id)
+    if month:
+        q = q.where(Expense.date.like(f"{month}%"))
+    result = await db.execute(q)
+    expenses = result.scalars().all()
+    total_income = sum(e.amount for e in expenses if e.type == "income")
+    total_expense = sum(e.amount for e in expenses if e.type == "expense")
+    profit_loss = total_income - total_expense
+    return {
+        "month": month or "all",
+        "total_income": round(total_income, 2),
+        "total_expense": round(total_expense, 2),
+        "profit_loss": round(profit_loss, 2),
+        "balance": round(profit_loss, 2),
+        "count": len(expenses),
+    }
+
+@router.get("/expenses/monthly-report")
+async def get_monthly_report(
+    year: Optional[str] = None,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    yr = year or str(datetime.utcnow().year)
+    q = select(Expense).where(Expense.user_id == user.id, Expense.date.like(f"{yr}%"))
+    result = await db.execute(q)
+    expenses = result.scalars().all()
+    months: dict = {}
+    for e in expenses:
+        m = e.date[:7]  # YYYY-MM
+        if m not in months:
+            months[m] = {"month": m, "total_income": 0, "total_expense": 0}
+        if e.type == "income":
+            months[m]["total_income"] += e.amount
+        else:
+            months[m]["total_expense"] += e.amount
+    report = []
+    for m, data in sorted(months.items()):
+        data["profit_loss"] = round(data["total_income"] - data["total_expense"], 2)
+        data["total_income"] = round(data["total_income"], 2)
+        data["total_expense"] = round(data["total_expense"], 2)
+        report.append(data)
+    return report
+
+@router.post("/expenses")
+async def create_expense(body: ExpenseIn, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    if body.project_id:
+        pr = await db.execute(select(Project).where(Project.id == body.project_id, Project.user_id == user.id))
+        if not pr.scalar_one_or_none():
+            raise HTTPException(404, "Project not found")
+    e = Expense(id=str(uuid.uuid4()), user_id=user.id, project_id=body.project_id or None,
+                type=body.type, category=body.category, amount=body.amount,
+                description=body.description or "", date=body.date,
+                is_recurring=body.is_recurring or False, recur_cycle=body.recur_cycle or "")
+    db.add(e)
+    await db.commit()
+    await db.refresh(e)
+    result = await db.execute(select(Expense).where(Expense.id == e.id).options(selectinload(Expense.project)))
+    return expense_out(result.scalar_one())
+
+@router.put("/expenses/{expense_id}")
+async def update_expense(expense_id: str, body: ExpenseUpdate, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Expense).where(Expense.id == expense_id, Expense.user_id == user.id))
+    e = result.scalar_one_or_none()
+    if not e: raise HTTPException(404, "Expense not found")
+    for field, val in body.model_dump(exclude_none=True).items():
+        setattr(e, field, val)
+    await db.commit()
+    return {"ok": True}
+
+@router.delete("/expenses/{expense_id}")
+async def delete_expense(expense_id: str, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Expense).where(Expense.id == expense_id, Expense.user_id == user.id))
+    e = result.scalar_one_or_none()
+    if not e: raise HTTPException(404, "Expense not found")
+    await db.delete(e)
+    await db.commit()
+    return {"ok": True}
 
 app.include_router(router)
 

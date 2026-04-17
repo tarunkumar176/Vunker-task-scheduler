@@ -134,6 +134,8 @@ class Expense(Base):
     recur_cycle  = Column(String, default="")
     created_at   = Column(DateTime, default=datetime.utcnow)
     project      = relationship("Project", foreign_keys=[project_id])
+
+class MaintenancePayment(Base):
     __tablename__ = "maintenance_payments"
     id             = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     maintenance_id = Column(String, ForeignKey("maintenance_contracts.id"), nullable=False)

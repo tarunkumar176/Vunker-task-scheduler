@@ -20,7 +20,16 @@ export default function ProjectDetail() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { theme, mode } = useThemeStore();
-  const { currentProject, loading, loadProject, addPayment, deletePayment, addNote, updateProject, deleteProject, createMaintenance } = useProjectStore();
+  const { currentProject, loadProject, addPayment, deletePayment, addNote, updateProject, deleteProject, createMaintenance } = useProjectStore();
+
+  const [pageLoading, setPageLoading] = useState(true);
+
+  useEffect(() => {
+    if (id) {
+      setPageLoading(true);
+      loadProject(id as string).finally(() => setPageLoading(false));
+    }
+  }, [id]);
 
   const [showPayModal, setShowPayModal] = useState(false);
   const [showNoteModal, setShowNoteModal] = useState(false);
@@ -123,7 +132,7 @@ export default function ProjectDetail() {
     ]);
   };
 
-  if (loading || !p) {
+  if (pageLoading || !p) {
     return <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}><View style={styles.center}><ActivityIndicator size="large" color={theme.primary} /></View></SafeAreaView>;
   }
 

@@ -498,8 +498,16 @@ async def get_projects(status: Optional[str] = None, search: Optional[str] = Non
 
 @router.get("/projects/{project_id}")
 async def get_project(project_id: str, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Project).where(Project.id == project_id, Project.user_id == user.id)
-                               .options(selectinload(Project.payments), selectinload(Project.maintenance).selectinload(Maintenance.payments), selectinload(Project.timeline_notes)))
+    from sqlalchemy.orm import selectinload as si
+    result = await db.execute(
+        select(Project)
+        .where(Project.id == project_id, Project.user_id == user.id)
+        .options(
+            si(Project.payments),
+            si(Project.maintenance).options(si(Maintenance.payments)),
+            si(Project.timeline_notes)
+        )
+    )
     p = result.scalar_one_or_none()
     if not p: raise HTTPException(404, "Project not found")
     return project_detail(p)

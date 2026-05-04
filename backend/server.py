@@ -11,7 +11,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from passlib.context import CryptContext
 from jose import jwt, JWTError
-import os, uuid, logging
+import os, uuid, logging, asyncio, requests
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -322,6 +322,28 @@ async def startup():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     log.info("Database tables created/verified")
+    
+    # Start keep-alive background task
+    asyncio.create_task(keep_alive())
+
+async def keep_alive():
+    """Background task to ping the backend and prevent Render sleep."""
+    url = os.environ.get("RENDER_EXTERNAL_URL")
+    if not url:
+        log.info("RENDER_EXTERNAL_URL not set, skipping keep-alive pings")
+        return
+    
+    health_url = f"{url.rstrip('/')}/health"
+    log.info(f"Starting keep-alive pings to {health_url}")
+    
+    while True:
+        await asyncio.sleep(600)  # Wait 10 minutes first
+        try:
+            # Run the synchronous requests.get in a thread to avoid blocking the event loop
+            response = await asyncio.to_thread(requests.get, health_url, timeout=10)
+            log.info(f"Keep-alive ping to {health_url} status: {response.status_code}")
+        except Exception as e:
+            log.error(f"Keep-alive ping failed: {e}")
 
 # ── Auth routes ───────────────────────────────────────────────────────────────
 @router.post("/auth/register")

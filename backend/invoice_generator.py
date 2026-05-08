@@ -89,8 +89,8 @@ def _make_styles():
                                      textColor=TEXT_BLACK, leading=14),
         "pay_value": ParagraphStyle("pay_value", fontName="Helvetica", fontSize=10,
                                      textColor=TEXT_GREY, leading=14),
-        "term": ParagraphStyle("term", fontName="Helvetica", fontSize=8,
-                                textColor=TEXT_GREY, leading=11),
+        "term": ParagraphStyle("term", fontName="Helvetica", fontSize=7,
+                                textColor=TEXT_GREY, leading=9),
         "sign_name": ParagraphStyle("sign_name", fontName="Helvetica-Bold", fontSize=11,
                                      textColor=BRAND_BLUE, alignment=TA_CENTER, leading=14),
         "sign_title": ParagraphStyle("sign_title", fontName="Helvetica", fontSize=9,
@@ -320,7 +320,7 @@ def generate_invoice_pdf(
 
     terms_text = ""
     for i, t in enumerate(TERMS, 1):
-        terms_text += f"{i}.  {t}<br/><br/>"
+        terms_text += f"{i}.  {t}<br/>"
     terms_para = Paragraph(terms_text, styles["term"])
 
     # Signature block

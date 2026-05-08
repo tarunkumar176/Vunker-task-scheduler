@@ -89,7 +89,7 @@ def _make_styles():
                                      textColor=TEXT_BLACK, leading=14),
         "pay_value": ParagraphStyle("pay_value", fontName="Helvetica", fontSize=10,
                                      textColor=TEXT_GREY, leading=14),
-        "term": ParagraphStyle("term", fontName="Helvetica", fontSize=7,
+        "term": ParagraphStyle("term", fontName="Helvetica", fontSize=6.5,
                                 textColor=TEXT_GREY, leading=9),
         "sign_name": ParagraphStyle("sign_name", fontName="Helvetica-Bold", fontSize=11,
                                      textColor=BRAND_BLUE, alignment=TA_CENTER, leading=14),
@@ -111,7 +111,7 @@ def _section_bar(text: str, styles: dict, width: float):
     """Create a coloured section header bar."""
     t = Table(
         [[Paragraph(text, styles["section_header"])]],
-        colWidths=[130],
+        colWidths=[180],
         rowHeights=[22],
         hAlign='LEFT'
     )
@@ -172,9 +172,9 @@ def generate_invoice_pdf(
 
     if LOGO_PATH.exists():
         # Enlarge the logo image to match the proportions in the reference
-        logo_img = Image(str(LOGO_PATH), width=50*mm, height=50*mm)
+        logo_img = Image(str(LOGO_PATH), width=40*mm, height=40*mm)
         header_cols = [logo_img, Paragraph(company_info, header_style_left), Paragraph(invoice_info, header_style_right)]
-        col_widths = [W * 0.28, W * 0.36, W * 0.36]
+        col_widths = [W * 0.25, W * 0.42, W * 0.33]
         line_col = 1
     else:
         header_cols = [Paragraph(company_info, header_style_left), Paragraph(invoice_info, header_style_right)]
@@ -354,7 +354,7 @@ def generate_invoice_pdf(
 
     bottom_table = Table(
         [[terms_para, inner_sign]],
-        colWidths=[W * 0.72, W * 0.28],
+        colWidths=[W * 0.78, W * 0.22],
     )
     bottom_table.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "TOP"),

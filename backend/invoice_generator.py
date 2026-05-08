@@ -171,9 +171,10 @@ def generate_invoice_pdf(
     header_style_right = ParagraphStyle("hr", fontName="Helvetica", fontSize=10, leading=14, alignment=TA_RIGHT)
 
     if LOGO_PATH.exists():
-        logo_img = Image(str(LOGO_PATH), width=30*mm, height=30*mm)
+        # Enlarge the logo image to match the proportions in the reference
+        logo_img = Image(str(LOGO_PATH), width=50*mm, height=50*mm)
         header_cols = [logo_img, Paragraph(company_info, header_style_left), Paragraph(invoice_info, header_style_right)]
-        col_widths = [W * 0.18, W * 0.42, W * 0.40]
+        col_widths = [W * 0.28, W * 0.36, W * 0.36]
         line_col = 1
     else:
         header_cols = [Paragraph(company_info, header_style_left), Paragraph(invoice_info, header_style_right)]

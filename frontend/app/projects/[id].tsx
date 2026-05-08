@@ -8,7 +8,10 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { format } from 'date-fns';
 import { useThemeStore } from '../../store/themeStore';
 import { useProjectStore } from '../../store/projectStore';
-import { expensesApi } from '../../services/api';
+import { expensesApi, projectsApi } from '../../services/api';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
+import * as Linking from 'expo-linking';
 
 const STATUS_COLORS: Record<string, string> = {
   'Not Started': '#9B99B8', 'In Progress': '#6C63FF', 'Completed': '#2ED573',
@@ -67,6 +70,47 @@ export default function ProjectDetail() {
   };
 
   const p = currentProject;
+
+  const [invoiceLoading, setInvoiceLoading] = useState(false);
+
+  const sendInvoiceViaWhatsApp = async () => {
+    if (!p) return;
+    setInvoiceLoading(true);
+    try {
+      const result = await projectsApi.sendInvoiceWhatsApp(id as string);
+
+      if (result.pdf_base64) {
+        const fileUri = `${FileSystem.documentDirectory}${result.filename}`;
+        await FileSystem.writeAsStringAsync(fileUri, result.pdf_base64, {
+          encoding: 'base64',
+        });
+
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(fileUri, {
+            mimeType: 'application/pdf',
+            dialogTitle: `Invoice for ${p.name}`,
+          });
+        }
+      }
+
+      if (result.whatsapp_link) {
+        const canOpen = await Linking.canOpenURL(result.whatsapp_link);
+        if (canOpen) {
+          await Linking.openURL(result.whatsapp_link);
+        } else {
+          Alert.alert('WhatsApp Not Found', 'WhatsApp is not installed on this device. The invoice PDF has been saved to your device.');
+        }
+      }
+
+      if (result.sent && result.method === 'api') {
+        Alert.alert('✅ Invoice Sent!', `Invoice #${result.invoice_number} has been sent directly to the client's WhatsApp.`);
+      }
+    } catch (e: any) {
+      Alert.alert('Invoice Error', e.message || 'Failed to generate invoice.');
+    } finally {
+      setInvoiceLoading(false);
+    }
+  };
 
   const handleAddPayment = async () => {
     if (!payAmount || isNaN(Number(payAmount))) { Alert.alert('Error', 'Enter a valid amount'); return; }
@@ -304,6 +348,21 @@ export default function ProjectDetail() {
             <Text style={[styles.actionBtnText, { color: theme.primary }]}>Edit</Text>
           </TouchableOpacity>
         </View>
+
+        <TouchableOpacity 
+          style={[styles.actionBtn, { backgroundColor: theme.success, borderColor: theme.success, marginTop: 12 }]}
+          onPress={sendInvoiceViaWhatsApp}
+          disabled={invoiceLoading}
+        >
+          {invoiceLoading ? (
+            <ActivityIndicator size="small" color="#FFF" />
+          ) : (
+            <>
+              <Ionicons name="document-text" size={18} color="#FFF" />
+              <Text style={[styles.actionBtnText, { color: '#FFF' }]}>Send Invoice via WhatsApp</Text>
+            </>
+          )}
+        </TouchableOpacity>
 
         <View style={{ height: 32 }} />
       </ScrollView>

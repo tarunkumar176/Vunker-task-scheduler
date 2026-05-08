@@ -8,7 +8,7 @@ import { format, parseISO } from 'date-fns';
 import { useThemeStore } from '../../store/themeStore';
 import { useProjectStore } from '../../store/projectStore';
 import { projectsApi } from '../../services/api';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 
 const STATUSES = ['Not Started', 'In Progress', 'Completed', 'Payment Pending', 'Closed'];

@@ -354,7 +354,7 @@ def generate_invoice_pdf(
 
     bottom_table = Table(
         [[terms_para, inner_sign]],
-        colWidths=[W * 0.58, W * 0.42],
+        colWidths=[W * 0.72, W * 0.28],
     )
     bottom_table.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "TOP"),

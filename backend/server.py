@@ -11,7 +11,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 from passlib.context import CryptContext
 from jose import jwt, JWTError
-import os, uuid, logging, asyncio, requests
+import os, uuid, logging, asyncio, requests, base64
+from fastapi.responses import Response as FastAPIResponse
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -540,7 +541,15 @@ async def create_project(body: ProjectIn, user: User = Depends(get_current_user)
     db.add(p)
     await db.commit()
     await db.refresh(p)
-    return {"id": p.id, "name": p.name, "status": p.status}
+    # Return full project data so frontend can generate invoice
+    return {
+        "id": p.id, "name": p.name, "status": p.status,
+        "description": p.description, "client_name": p.client_name,
+        "client_phone": p.client_phone, "client_email": p.client_email,
+        "client_company": p.client_company, "total_cost": p.total_cost,
+        "advance_paid": p.advance_paid, "start_date": p.start_date,
+        "deadline": p.deadline,
+    }
 
 @router.put("/projects/{project_id}")
 async def update_project(project_id: str, body: ProjectUpdate, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
@@ -560,6 +569,93 @@ async def delete_project(project_id: str, user: User = Depends(get_current_user)
     await db.delete(p)
     await db.commit()
     return {"ok": True}
+
+# ── Invoice generation & WhatsApp endpoints ───────────────────────────────────
+
+def _next_invoice_number(project_name: str) -> str:
+    """Generate an invoice number like INV-001."""
+    import time
+    ts = int(time.time()) % 100000
+    return f"INV-{ts:05d}"
+
+@router.get("/projects/{project_id}/invoice")
+async def get_project_invoice(
+    project_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate and return a PDF invoice for the project."""
+    result = await db.execute(select(Project).where(Project.id == project_id, Project.user_id == user.id))
+    p = result.scalar_one_or_none()
+    if not p:
+        raise HTTPException(404, "Project not found")
+
+    from invoice_generator import generate_invoice_pdf
+    invoice_number = _next_invoice_number(p.name)
+    pdf_bytes = generate_invoice_pdf(
+        invoice_number=invoice_number,
+        project_name=p.name,
+        client_name=p.client_name,
+        client_company=p.client_company or "",
+        client_phone=p.client_phone or "",
+        client_email=p.client_email or "",
+        total_cost=p.total_cost or 0,
+        advance_paid=p.advance_paid or 0,
+        start_date=p.start_date or "",
+        deadline=p.deadline or "",
+    )
+    return FastAPIResponse(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="Invoice_{invoice_number}.pdf"'},
+    )
+
+@router.post("/projects/{project_id}/invoice/send-whatsapp")
+async def send_project_invoice_whatsapp(
+    project_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate invoice PDF and send it via WhatsApp to the client."""
+    result = await db.execute(select(Project).where(Project.id == project_id, Project.user_id == user.id))
+    p = result.scalar_one_or_none()
+    if not p:
+        raise HTTPException(404, "Project not found")
+    if not p.client_phone:
+        raise HTTPException(400, "Client phone number is required to send WhatsApp")
+
+    from invoice_generator import generate_invoice_pdf
+    from whatsapp_sender import send_invoice_whatsapp
+
+    invoice_number = _next_invoice_number(p.name)
+    pdf_bytes = generate_invoice_pdf(
+        invoice_number=invoice_number,
+        project_name=p.name,
+        client_name=p.client_name,
+        client_company=p.client_company or "",
+        client_phone=p.client_phone or "",
+        client_email=p.client_email or "",
+        total_cost=p.total_cost or 0,
+        advance_paid=p.advance_paid or 0,
+        start_date=p.start_date or "",
+        deadline=p.deadline or "",
+    )
+
+    # Send via WhatsApp
+    wa_result = send_invoice_whatsapp(
+        phone=p.client_phone,
+        pdf_bytes=pdf_bytes,
+        invoice_number=invoice_number,
+        project_name=p.name,
+        client_name=p.client_name,
+        total_cost=p.total_cost or 0,
+    )
+
+    # Also return the PDF as base64 so the app can open/share it
+    wa_result["invoice_number"] = invoice_number
+    wa_result["pdf_base64"] = base64.b64encode(pdf_bytes).decode("utf-8")
+    wa_result["filename"] = f"Invoice_{invoice_number}.pdf"
+    return wa_result
 
 @router.post("/projects/{project_id}/payments")
 async def add_payment(project_id: str, body: PaymentIn, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):

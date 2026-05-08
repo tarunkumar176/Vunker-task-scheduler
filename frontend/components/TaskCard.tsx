@@ -1,19 +1,25 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import Animated, { FadeInDown, FadeOut, LinearTransition, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { useThemeStore } from '../store/themeStore';
 import { Task } from '../services/database';
 
 interface TaskCardProps {
   task: Task;
+  index: number;
   onToggleComplete: (id: string) => void;
   onEdit: (task: Task) => void;
   onDelete: (id: string) => void;
 }
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, onToggleComplete, onEdit, onDelete }) => {
+const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
+
+const TaskCard: React.FC<TaskCardProps> = ({ task, index, onToggleComplete, onEdit, onDelete }) => {
   const { theme } = useThemeStore();
   const isCompleted = Boolean(task.completed);
+  const scale = useSharedValue(1);
 
   const priorityConfig = {
     High: { color: theme.high, bg: theme.highBg, icon: 'flame' as const },
@@ -21,21 +27,43 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onToggleComplete, onEdit, onD
     Low: { color: theme.low, bg: theme.lowBg, icon: 'checkmark-circle' as const },
   }[task.priority];
 
+  const handlePressIn = () => { scale.value = withSpring(0.97, { damping: 15 }); };
+  const handlePressOut = () => { scale.value = withSpring(1, { damping: 15 }); };
+
+  const handleToggle = () => {
+    Haptics.impactAsync(isCompleted ? Haptics.ImpactFeedbackStyle.Light : Haptics.ImpactFeedbackStyle.Medium);
+    onToggleComplete(task.id);
+  };
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: withTiming(isCompleted ? 0.6 : 1, { duration: 300 }),
+  }));
+
   return (
-    <View
+    <Animated.View
+      entering={FadeInDown.delay(index * 100).springify().damping(14)}
+      exiting={FadeOut.duration(200)}
+      layout={LinearTransition.springify()}
       style={[
-        styles.card,
+        styles.cardContainer,
+        animatedStyle,
         {
           backgroundColor: theme.card,
           borderColor: theme.border,
           shadowColor: theme.shadow,
-          opacity: isCompleted ? 0.65 : 1,
         },
       ]}
     >
       <View style={[styles.accentBar, { backgroundColor: priorityConfig.color }]} />
       <View style={styles.cardInner}>
-        <TouchableOpacity onPress={() => onToggleComplete(task.id)} style={styles.checkboxWrap} activeOpacity={0.7}>
+        <TouchableOpacity 
+          onPress={handleToggle} 
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+          style={styles.checkboxWrap} 
+          activeOpacity={0.8}
+        >
           <View
             style={[
               styles.checkbox,
@@ -91,7 +119,10 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onToggleComplete, onEdit, onD
             <Ionicons name="pencil" size={15} color={theme.primary} />
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => onDelete(task.id)}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+              onDelete(task.id);
+            }}
             style={[styles.actionBtn, { backgroundColor: theme.error + '18' }]}
             activeOpacity={0.7}
           >
@@ -99,57 +130,57 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onToggleComplete, onEdit, onD
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
-  card: {
-    borderRadius: 14,
+  cardContainer: {
+    borderRadius: 16,
     borderWidth: 1,
-    marginBottom: 10,
+    marginBottom: 12,
     overflow: 'hidden',
-    elevation: 2,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 6,
+    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
     flexDirection: 'row',
   },
-  accentBar: { width: 4 },
+  accentBar: { width: 5 },
   cardInner: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    gap: 10,
+    padding: 14,
+    gap: 12,
   },
-  checkboxWrap: { padding: 2 },
+  checkboxWrap: { padding: 4 },
   checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 6,
+    width: 24,
+    height: 24,
+    borderRadius: 8,
     borderWidth: 2,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  content: { flex: 1, gap: 4 },
-  title: { fontSize: 15, fontWeight: '600' },
+  content: { flex: 1, gap: 5 },
+  title: { fontSize: 16, fontWeight: '700' },
   description: { fontSize: 13, lineHeight: 18 },
-  meta: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 2 },
+  meta: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: 4,
     borderRadius: 20,
   },
   pillText: { fontSize: 11, fontWeight: '600' },
-  actions: { gap: 6 },
+  actions: { gap: 8 },
   actionBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
+    width: 34,
+    height: 34,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },

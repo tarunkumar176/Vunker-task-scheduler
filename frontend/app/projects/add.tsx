@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, StatusBar, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, StatusBar, ActivityIndicator, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -7,6 +7,9 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { format, parseISO } from 'date-fns';
 import { useThemeStore } from '../../store/themeStore';
 import { useProjectStore } from '../../store/projectStore';
+import { projectsApi } from '../../services/api';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 
 const STATUSES = ['Not Started', 'In Progress', 'Completed', 'Payment Pending', 'Closed'];
 
@@ -73,6 +76,44 @@ export default function AddEditProject() {
     }
   }, [currentProject]);
 
+  const sendInvoiceViaWhatsApp = async (projectId: string, projectName: string) => {
+    try {
+      const result = await projectsApi.sendInvoiceWhatsApp(projectId);
+
+      // Save the PDF locally so user can share it manually too
+      if (result.pdf_base64) {
+        const fileUri = `${FileSystem.documentDirectory}${result.filename}`;
+        await FileSystem.writeAsStringAsync(fileUri, result.pdf_base64, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+
+        // Share the PDF file (will open the system share sheet)
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(fileUri, {
+            mimeType: 'application/pdf',
+            dialogTitle: `Invoice for ${projectName}`,
+          });
+        }
+      }
+
+      // Open WhatsApp with the pre-filled message
+      if (result.whatsapp_link) {
+        const canOpen = await Linking.canOpenURL(result.whatsapp_link);
+        if (canOpen) {
+          await Linking.openURL(result.whatsapp_link);
+        } else {
+          Alert.alert('WhatsApp Not Found', 'WhatsApp is not installed on this device. The invoice PDF has been saved to your device.');
+        }
+      }
+
+      if (result.sent && result.method === 'api') {
+        Alert.alert('✅ Invoice Sent!', `Invoice #${result.invoice_number} has been sent directly to the client's WhatsApp.`);
+      }
+    } catch (e: any) {
+      Alert.alert('Invoice Error', e.message || 'Failed to generate invoice. You can try again from the project detail page.');
+    }
+  };
+
   const handleSave = async () => {
     if (!name.trim()) { Alert.alert('Required', 'Project name is required'); return; }
     if (!clientName.trim()) { Alert.alert('Required', 'Client name is required'); return; }
@@ -102,10 +143,30 @@ export default function AddEditProject() {
         ]);
       } else {
         const project = await createProject(payload);
-        Alert.alert('Project Created', `"${name}" has been added.`, [
-          { text: 'View Project', onPress: () => router.replace({ pathname: '/projects/[id]', params: { id: project.id } }) },
+
+        // Offer to send invoice via WhatsApp
+        const alertButtons: any[] = [
           { text: 'Back to Projects', onPress: () => router.replace('/projects') },
-        ]);
+          { text: 'View Project', onPress: () => router.replace({ pathname: '/projects/[id]', params: { id: project.id } }) },
+        ];
+
+        // Only show WhatsApp option if client phone is provided
+        if (clientPhone.trim()) {
+          alertButtons.unshift({
+            text: '📄 Send Invoice',
+            onPress: () => {
+              sendInvoiceViaWhatsApp(project.id, name.trim());
+              // Navigate after a small delay
+              setTimeout(() => router.replace({ pathname: '/projects/[id]', params: { id: project.id } }), 500);
+            },
+          });
+        }
+
+        Alert.alert(
+          '✅ Project Created!',
+          `"${name}" has been added.${clientPhone.trim() ? '\n\nWould you like to send the invoice via WhatsApp?' : ''}`,
+          alertButtons,
+        );
       }
     } catch (e: any) {
       Alert.alert('Error', e.message || 'Something went wrong. Check your connection.');

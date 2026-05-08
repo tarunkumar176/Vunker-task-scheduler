@@ -18,6 +18,9 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { format, parseISO } from 'date-fns';
 
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
+
 import { useThemeStore } from '../store/themeStore';
 import { useTaskStore } from '../store/taskStore';
 import { getTaskById } from '../services/database';
@@ -86,12 +89,14 @@ export default function EditTask() {
   const handleSave = async () => {
     // Validation
     if (!title.trim()) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert('Error', 'Please enter a task title');
       return;
     }
     
     if (!task) return;
     
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setSaving(true);
     try {
       const taskDate = format(date, 'yyyy-MM-dd');
@@ -105,10 +110,12 @@ export default function EditTask() {
         priority,
       });
       
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert('Success', 'Task updated successfully!', [
         { text: 'OK', onPress: () => router.back() },
       ]);
     } catch (error) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert('Error', 'Failed to update task');
       console.error(error);
     } finally {
@@ -157,7 +164,7 @@ export default function EditTask() {
       >
         <ScrollView style={styles.form} contentContainerStyle={styles.formContent}>
           {/* Title */}
-          <View style={styles.field}>
+          <Animated.View entering={FadeInDown.duration(400).delay(100)} style={styles.field}>
             <Text style={[styles.label, { color: theme.textSecondary }]}>TASK TITLE *</Text>
             <TextInput
               style={[
@@ -173,10 +180,10 @@ export default function EditTask() {
               placeholder="Enter task title"
               placeholderTextColor={theme.disabled}
             />
-          </View>
+          </Animated.View>
 
           {/* Description */}
-          <View style={styles.field}>
+          <Animated.View entering={FadeInDown.duration(400).delay(150)} style={styles.field}>
             <Text style={[styles.label, { color: theme.textSecondary }]}>DESCRIPTION</Text>
             <TextInput
               style={[
@@ -196,44 +203,44 @@ export default function EditTask() {
               numberOfLines={4}
               textAlignVertical="top"
             />
-          </View>
+          </Animated.View>
 
           {/* Date */}
-          <View style={styles.field}>
+          <Animated.View entering={FadeInDown.duration(400).delay(200)} style={styles.field}>
             <Text style={[styles.label, { color: theme.textSecondary }]}>DATE *</Text>
             <TouchableOpacity
               style={[
                 styles.pickerButton,
                 { backgroundColor: theme.surface, borderColor: theme.border },
               ]}
-              onPress={() => setShowDatePicker(true)}
+              onPress={() => { Haptics.selectionAsync(); setShowDatePicker(true); }}
             >
               <Ionicons name="calendar-outline" size={20} color={theme.primary} />
               <Text style={[styles.pickerText, { color: theme.text }]}>
                 {format(date, 'EEEE, MMMM d, yyyy')}
               </Text>
             </TouchableOpacity>
-          </View>
+          </Animated.View>
 
           {/* Time */}
-          <View style={styles.field}>
+          <Animated.View entering={FadeInDown.duration(400).delay(250)} style={styles.field}>
             <Text style={[styles.label, { color: theme.textSecondary }]}>TIME *</Text>
             <TouchableOpacity
               style={[
                 styles.pickerButton,
                 { backgroundColor: theme.surface, borderColor: theme.border },
               ]}
-              onPress={() => setShowTimePicker(true)}
+              onPress={() => { Haptics.selectionAsync(); setShowTimePicker(true); }}
             >
               <Ionicons name="time-outline" size={20} color={theme.primary} />
               <Text style={[styles.pickerText, { color: theme.text }]}>
                 {format(time, 'hh:mm a')}
               </Text>
             </TouchableOpacity>
-          </View>
+          </Animated.View>
 
           {/* Priority */}
-          <View style={styles.field}>
+          <Animated.View entering={FadeInDown.duration(400).delay(300)} style={styles.field}>
             <Text style={[styles.label, { color: theme.textSecondary }]}>PRIORITY *</Text>
             <View style={styles.priorityContainer}>
               {(['High', 'Medium', 'Low'] as Priority[]).map((p) => {
@@ -254,7 +261,7 @@ export default function EditTask() {
                         borderColor: priorityColor,
                       },
                     ]}
-                    onPress={() => setPriority(p)}
+                    onPress={() => { Haptics.selectionAsync(); setPriority(p); }}
                   >
                     <Text
                       style={[
@@ -268,19 +275,19 @@ export default function EditTask() {
                 );
               })}
             </View>
-          </View>
+          </Animated.View>
 
           {/* Info */}
-          <View style={[styles.infoBox, { backgroundColor: theme.primaryLight + '20', borderColor: theme.primary }]}>
+          <Animated.View entering={FadeInDown.duration(400).delay(350)} style={[styles.infoBox, { backgroundColor: theme.primaryLight + '20', borderColor: theme.primary }]}>
             <Ionicons name="information-circle-outline" size={20} color={theme.primary} />
             <Text style={[styles.infoText, { color: theme.primary }]}>
               Updating the date or time will reschedule your notifications.
             </Text>
-          </View>
+          </Animated.View>
         </ScrollView>
 
         {/* Save Button */}
-        <View style={[styles.footer, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
+        <Animated.View entering={FadeInUp.duration(400).delay(400)} style={[styles.footer, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
           <TouchableOpacity
             style={[
               styles.saveButton,
@@ -292,7 +299,7 @@ export default function EditTask() {
             <Text style={styles.saveButtonText}>
               {saving ? 'Updating...' : 'Update Task'}
             </Text>
-          </TouchableOpacity>        </View>
+          </TouchableOpacity>        </Animated.View>
       </KeyboardAvoidingView>
 
       {/* Date Picker */}

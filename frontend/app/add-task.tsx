@@ -17,6 +17,9 @@ import { useRouter } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { format } from 'date-fns';
 
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
+
 import { useThemeStore } from '../store/themeStore';
 import { useTaskStore } from '../store/taskStore';
 import { RecurrenceType } from '../services/database';
@@ -41,6 +44,7 @@ export default function AddTask() {
   const [loading, setLoading] = useState(false);
 
   const toggleDay = (dayIndex: number) => {
+    Haptics.selectionAsync();
     setSelectedDays((prev) =>
       prev.includes(dayIndex) ? prev.filter((d) => d !== dayIndex) : [...prev, dayIndex].sort()
     );
@@ -48,13 +52,16 @@ export default function AddTask() {
 
   const handleSave = async () => {
     if (!title.trim()) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert('Missing Title', 'Please enter a task title');
       return;
     }
     if (recurrence === 'weekly' && selectedDays.length === 0) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert('Select Days', 'Please select at least one day for weekly recurrence');
       return;
     }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLoading(true);
     try {
       await addTask({
@@ -66,10 +73,12 @@ export default function AddTask() {
         recurrence,
         recurrenceDays: JSON.stringify(selectedDays),
       });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert('Task Created', 'Your task has been scheduled with reminders.', [
         { text: 'OK', onPress: () => router.back() },
       ]);
     } catch {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert('Error', 'Failed to create task');
     } finally {
       setLoading(false);
@@ -99,7 +108,7 @@ export default function AddTask() {
         <ScrollView style={styles.flex} contentContainerStyle={styles.formContent} showsVerticalScrollIndicator={false}>
 
           {/* Title */}
-          <View style={styles.field}>
+          <Animated.View entering={FadeInDown.duration(400).delay(100)} style={styles.field}>
             <Text style={[styles.label, { color: theme.textSecondary }]}>TASK TITLE *</Text>
             <TextInput
               style={[styles.input, { backgroundColor: theme.surface, color: theme.text, borderColor: theme.border }]}
@@ -108,10 +117,10 @@ export default function AddTask() {
               placeholder="What do you need to do?"
               placeholderTextColor={theme.disabled}
             />
-          </View>
+          </Animated.View>
 
           {/* Description */}
-          <View style={styles.field}>
+          <Animated.View entering={FadeInDown.duration(400).delay(150)} style={styles.field}>
             <Text style={[styles.label, { color: theme.textSecondary }]}>DESCRIPTION</Text>
             <TextInput
               style={[styles.input, styles.textArea, { backgroundColor: theme.surface, color: theme.text, borderColor: theme.border }]}
@@ -123,15 +132,16 @@ export default function AddTask() {
               numberOfLines={3}
               textAlignVertical="top"
             />
-          </View>
+          </Animated.View>
 
           {/* Date & Time Row */}
-          <View style={styles.row}>
+          <Animated.View entering={FadeInDown.duration(400).delay(200)} style={styles.row}>
             <View style={[styles.field, styles.flex]}>
               <Text style={[styles.label, { color: theme.textSecondary }]}>DATE *</Text>
               <TouchableOpacity
                 style={[styles.pickerBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
-                onPress={() => setShowDatePicker(true)}
+                onPress={() => { Haptics.selectionAsync(); setShowDatePicker(true); }}
+                activeOpacity={0.7}
               >
                 <Ionicons name="calendar" size={18} color={theme.primary} />
                 <Text style={[styles.pickerText, { color: theme.text }]}>{format(date, 'MMM d, yyyy')}</Text>
@@ -141,16 +151,17 @@ export default function AddTask() {
               <Text style={[styles.label, { color: theme.textSecondary }]}>TIME *</Text>
               <TouchableOpacity
                 style={[styles.pickerBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
-                onPress={() => setShowTimePicker(true)}
+                onPress={() => { Haptics.selectionAsync(); setShowTimePicker(true); }}
+                activeOpacity={0.7}
               >
                 <Ionicons name="time" size={18} color={theme.primary} />
                 <Text style={[styles.pickerText, { color: theme.text }]}>{format(time, 'hh:mm a')}</Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </Animated.View>
 
           {/* Priority */}
-          <View style={styles.field}>
+          <Animated.View entering={FadeInDown.duration(400).delay(250)} style={styles.field}>
             <Text style={[styles.label, { color: theme.textSecondary }]}>PRIORITY *</Text>
             <View style={styles.row}>
               {(['High', 'Medium', 'Low'] as Priority[]).map((p) => {
@@ -167,7 +178,7 @@ export default function AddTask() {
                         borderColor: isSelected ? cfg.color : theme.border,
                       },
                     ]}
-                    onPress={() => setPriority(p)}
+                    onPress={() => { Haptics.selectionAsync(); setPriority(p); }}
                     activeOpacity={0.8}
                   >
                     <Ionicons name={cfg.icon} size={16} color={isSelected ? '#FFFFFF' : cfg.color} />
@@ -176,10 +187,10 @@ export default function AddTask() {
                 );
               })}
             </View>
-          </View>
+          </Animated.View>
 
           {/* Recurrence */}
-          <View style={styles.field}>
+          <Animated.View entering={FadeInDown.duration(400).delay(300)} style={styles.field}>
             <Text style={[styles.label, { color: theme.textSecondary }]}>REPEAT</Text>
             <View style={styles.row}>
               {(['none', 'daily', 'weekly'] as RecurrenceType[]).map((r) => {
@@ -196,7 +207,7 @@ export default function AddTask() {
                         borderColor: isSelected ? theme.primary : theme.border,
                       },
                     ]}
-                    onPress={() => { setRecurrence(r); if (r !== 'weekly') setSelectedDays([]); }}
+                    onPress={() => { Haptics.selectionAsync(); setRecurrence(r); if (r !== 'weekly') setSelectedDays([]); }}
                     activeOpacity={0.8}
                   >
                     <Text style={[styles.recurrenceBtnText, { color: isSelected ? '#FFFFFF' : theme.textSecondary }]}>
@@ -206,11 +217,11 @@ export default function AddTask() {
                 );
               })}
             </View>
-          </View>
+          </Animated.View>
 
           {/* Weekly day selector */}
           {recurrence === 'weekly' && (
-            <View style={styles.field}>
+            <Animated.View entering={FadeInDown.duration(400).springify()} style={styles.field}>
               <Text style={[styles.label, { color: theme.textSecondary }]}>SELECT DAYS *</Text>
               <View style={styles.daysRow}>
                 {WEEKDAYS.map((day, index) => {
@@ -235,22 +246,22 @@ export default function AddTask() {
                   );
                 })}
               </View>
-            </View>
+            </Animated.View>
           )}
 
           {/* Notification info */}
-          <View style={[styles.infoCard, { backgroundColor: theme.primary + '12', borderColor: theme.primary + '30' }]}>
+          <Animated.View entering={FadeInDown.duration(400).delay(350)} style={[styles.infoCard, { backgroundColor: theme.primary + '12', borderColor: theme.primary + '30' }]}>
             <Ionicons name="notifications" size={18} color={theme.primary} />
             <Text style={[styles.infoText, { color: theme.primary }]}>
               You'll get reminders at 8 AM on the day, 1 hour before, 10 minutes before, and at task time.
             </Text>
-          </View>
+          </Animated.View>
 
           <View style={{ height: 16 }} />
         </ScrollView>
 
         {/* Footer */}
-        <View style={[styles.footer, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
+        <Animated.View entering={FadeInUp.duration(400).delay(400)} style={[styles.footer, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
           <TouchableOpacity
             style={[styles.saveBtn, { backgroundColor: theme.primary, opacity: loading ? 0.6 : 1 }]}
             onPress={handleSave}
@@ -260,7 +271,7 @@ export default function AddTask() {
             <Ionicons name="checkmark-circle" size={22} color="#FFFFFF" />
             <Text style={styles.saveBtnText}>{loading ? 'Creating...' : 'Create Task'}</Text>
           </TouchableOpacity>
-        </View>
+        </Animated.View>
       </KeyboardAvoidingView>
 
       {showDatePicker && (

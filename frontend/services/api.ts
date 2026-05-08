@@ -85,6 +85,8 @@ export const projectsApi = {
   addPayment: (projectId: string, data: any) => api.post(`/projects/${projectId}/payments`, data),
   deletePayment: (projectId: string, paymentId: string) => api.delete(`/projects/${projectId}/payments/${paymentId}`),
   addNote: (projectId: string, note: string) => api.post(`/projects/${projectId}/notes`, { note }),
+  // Invoice
+  sendInvoiceWhatsApp: (projectId: string) => api.post(`/projects/${projectId}/invoice/send-whatsapp`, {}),
 };
 
 // Maintenance

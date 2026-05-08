@@ -9,6 +9,8 @@ import { useAuthStore } from '../store/authStore';
 import { useTaskStore } from '../store/taskStore';
 import { dashboardApi } from '../services/api';
 import { format } from 'date-fns';
+import Animated, { FadeInDown, FadeInUp, FadeInRight, ZoomIn } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 
 const MODULE_CONFIG = [
   { icon: 'calendar', label: 'Task Scheduler', subtitle: 'Reminders & calendar', color: '#5B4FE8', shadow: '#3D33C4', route: '/tasks' },
@@ -50,10 +52,16 @@ export default function Home() {
   };
 
   const handleLogout = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     Alert.alert('Sign Out', 'Are you sure?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Sign Out', style: 'destructive', onPress: async () => { await logout(); router.replace('/login' as any); } },
     ]);
+  };
+
+  const handleThemeToggle = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    toggleTheme();
   };
 
   const statValues = dashboard ? [
@@ -84,10 +92,10 @@ export default function Home() {
           </View>
         </View>
         <View style={styles.headerActions}>
-          <TouchableOpacity onPress={toggleTheme} style={[styles.iconBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <TouchableOpacity onPress={handleThemeToggle} style={[styles.iconBtn, { backgroundColor: theme.surface, borderColor: theme.border }]} activeOpacity={0.7}>
             <Ionicons name={mode === 'light' ? 'moon' : 'sunny'} size={18} color={mode === 'light' ? '#5B4FE8' : '#FFB347'} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleLogout} style={[styles.iconBtn, { backgroundColor: theme.error + '15', borderColor: theme.error + '30' }]}>
+          <TouchableOpacity onPress={handleLogout} style={[styles.iconBtn, { backgroundColor: theme.error + '15', borderColor: theme.error + '30' }]} activeOpacity={0.7}>
             <Ionicons name="log-out-outline" size={18} color={theme.error} />
           </TouchableOpacity>
         </View>
@@ -95,10 +103,10 @@ export default function Home() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         {/* Date banner */}
-        <View style={[styles.dateBanner, { backgroundColor: theme.primary + '12', borderColor: theme.primary + '25' }]}>
+        <Animated.View entering={FadeInDown.duration(400).delay(100)} style={[styles.dateBanner, { backgroundColor: theme.primary + '12', borderColor: theme.primary + '25' }]}>
           <Ionicons name="calendar-outline" size={16} color={theme.primary} />
           <Text style={[styles.dateText, { color: theme.primary }]}>{format(new Date(), 'EEEE, MMMM d, yyyy')}</Text>
-        </View>
+        </Animated.View>
 
         {/* Stats row */}
         {loading ? (
@@ -106,7 +114,7 @@ export default function Home() {
         ) : (
           <View style={styles.statsRow}>
             {STAT_CONFIG.map((s, i) => (
-              <View key={s.key} style={styles.statWrap}>
+              <Animated.View entering={ZoomIn.duration(400).delay(200 + i * 100).springify()} key={s.key} style={styles.statWrap}>
                 <View style={[styles.statShadow, { backgroundColor: s.color + '80' }]} />
                 <View style={[styles.statCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
                   <View style={[styles.statIconWrap, { backgroundColor: s.color + '18' }]}>
@@ -115,46 +123,50 @@ export default function Home() {
                   <Text style={[styles.statValue, { color: theme.text }]}>{statValues[i]}</Text>
                   <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{s.label}</Text>
                 </View>
-              </View>
+              </Animated.View>
             ))}
           </View>
         )}
 
         {/* Renewal alert */}
         {(dashboard?.upcoming_renewals?.length || 0) > 0 && (
-          <TouchableOpacity onPress={() => router.push('/maintenance' as any)} activeOpacity={0.85}>
-            <View style={styles.alertStack}>
-              <View style={[styles.alertShadow, { backgroundColor: '#CC6E00' }]} />
-              <View style={[styles.alertCard, { backgroundColor: '#FF8C00', }]}>
-                <View style={[styles.alertIconWrap, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-                  <Ionicons name="warning" size={20} color="#FFF" />
-                </View>
-                <View style={styles.alertText}>
-                  <Text style={styles.alertTitle}>{dashboard.upcoming_renewals.length} renewal{dashboard.upcoming_renewals.length > 1 ? 's' : ''} due soon</Text>
-                  <Text style={styles.alertSub}>Tap to view maintenance →</Text>
-                </View>
-              </View>
-            </View>
-          </TouchableOpacity>
-        )}
-
-        {/* Module grid */}
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>Quick Access</Text>
-        <View style={styles.grid}>
-          {MODULE_CONFIG.map((m) => (
-            <TouchableOpacity key={m.label} onPress={() => router.push(m.route as any)} activeOpacity={0.85} style={styles.moduleWrap}>
-              <View style={[styles.moduleShadow, { backgroundColor: m.shadow }]} />
-              <View style={[styles.moduleCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-                <View style={[styles.moduleIconWrap, { backgroundColor: m.color }]}>
-                  <Ionicons name={m.icon as any} size={26} color="#FFF" />
-                </View>
-                <Text style={[styles.moduleLabel, { color: theme.text }]}>{m.label}</Text>
-                <Text style={[styles.moduleSub, { color: theme.textSecondary }]}>{m.subtitle}</Text>
-                <View style={[styles.moduleArrow, { backgroundColor: m.color + '18' }]}>
-                  <Ionicons name="arrow-forward" size={14} color={m.color} />
+          <Animated.View entering={FadeInRight.duration(500).delay(400)}>
+            <TouchableOpacity onPress={() => { Haptics.selectionAsync(); router.push('/maintenance' as any); }} activeOpacity={0.85}>
+              <View style={styles.alertStack}>
+                <View style={[styles.alertShadow, { backgroundColor: '#CC6E00' }]} />
+                <View style={[styles.alertCard, { backgroundColor: '#FF8C00', }]}>
+                  <View style={[styles.alertIconWrap, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                    <Ionicons name="warning" size={20} color="#FFF" />
+                  </View>
+                  <View style={styles.alertText}>
+                    <Text style={styles.alertTitle}>{dashboard.upcoming_renewals.length} renewal{dashboard.upcoming_renewals.length > 1 ? 's' : ''} due soon</Text>
+                    <Text style={styles.alertSub}>Tap to view maintenance →</Text>
+                  </View>
                 </View>
               </View>
             </TouchableOpacity>
+          </Animated.View>
+        )}
+
+        {/* Module grid */}
+        <Animated.Text entering={FadeInUp.duration(400).delay(300)} style={[styles.sectionTitle, { color: theme.text }]}>Quick Access</Animated.Text>
+        <View style={styles.grid}>
+          {MODULE_CONFIG.map((m, i) => (
+            <Animated.View key={m.label} entering={FadeInUp.duration(400).delay(350 + i * 100).springify()} style={styles.moduleWrap}>
+              <TouchableOpacity onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push(m.route as any); }} activeOpacity={0.85} style={{ flex: 1 }}>
+                <View style={[styles.moduleShadow, { backgroundColor: m.shadow }]} />
+                <View style={[styles.moduleCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+                  <View style={[styles.moduleIconWrap, { backgroundColor: m.color }]}>
+                    <Ionicons name={m.icon as any} size={26} color="#FFF" />
+                  </View>
+                  <Text style={[styles.moduleLabel, { color: theme.text }]}>{m.label}</Text>
+                  <Text style={[styles.moduleSub, { color: theme.textSecondary }]}>{m.subtitle}</Text>
+                  <View style={[styles.moduleArrow, { backgroundColor: m.color + '18' }]}>
+                    <Ionicons name="arrow-forward" size={14} color={m.color} />
+                  </View>
+                </View>
+              </TouchableOpacity>
+            </Animated.View>
           ))}
         </View>
 

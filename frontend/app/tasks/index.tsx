@@ -112,8 +112,8 @@ export default function Tasks() {
         ) : (
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.primary} colors={[theme.primary]} />}>
-            {tasks.map((task) => (
-              <TaskCard key={task.id} task={task as any} onToggleComplete={toggleComplete} onEdit={(t) => router.push({ pathname: '/edit-task', params: { taskId: t.id } })} onDelete={handleDelete} />
+            {tasks.map((task, i) => (
+              <TaskCard key={task.id} index={i} task={task as any} onToggleComplete={toggleComplete} onEdit={(t) => router.push({ pathname: '/edit-task', params: { taskId: t.id } })} onDelete={handleDelete} />
             ))}
           </ScrollView>
         )}

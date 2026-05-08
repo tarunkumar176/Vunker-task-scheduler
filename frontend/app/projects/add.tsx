@@ -84,7 +84,7 @@ export default function AddEditProject() {
       if (result.pdf_base64) {
         const fileUri = `${FileSystem.documentDirectory}${result.filename}`;
         await FileSystem.writeAsStringAsync(fileUri, result.pdf_base64, {
-          encoding: FileSystem.EncodingType.Base64,
+          encoding: 'base64',
         });
 
         // Share the PDF file (will open the system share sheet)

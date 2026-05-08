@@ -38,6 +38,7 @@ TEXT_GREY     = HexColor("#555555")
 
 ROOT = Path(__file__).parent
 SIGNATURE_PATH = ROOT / "auth_signature.png"
+LOGO_PATH = ROOT.parent / "frontend" / "assets" / "images" / "app-image.png"
 
 # ── Payment details (configurable via env) ─────────────────────────────────────
 PAYMENT_INFO = {
@@ -98,20 +99,21 @@ def _make_styles():
 
 
 def _format_inr(amount: float) -> str:
-    """Format a number in Indian ₹ style."""
+    """Format a number in Indian style."""
     if amount == 0:
-        return "₹0"
+        return "Rs. 0"
     # Simple Indian number formatting
     s = f"{amount:,.0f}"
-    return f"₹{s}"
+    return f"Rs. {s}"
 
 
 def _section_bar(text: str, styles: dict, width: float):
     """Create a coloured section header bar."""
     t = Table(
         [[Paragraph(text, styles["section_header"])]],
-        colWidths=[width * 0.45],
+        colWidths=[130],
         rowHeights=[22],
+        hAlign='LEFT'
     )
     t.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, -1), TABLE_HEADER),
@@ -155,9 +157,9 @@ def generate_invoice_pdf(
 
     company_info = (
         '<b><font size="18" color="#0D47A1">Vynker Technologies</font></b><br/>'
-        '<font size="8" color="#555555">📋 Udyam Registration No: 10-0132779</font><br/>'
-        '<font size="8" color="#555555">📞 Phone: 9742838165</font><br/>'
-        '<font size="8" color="#555555">✉️ Email: contact@vynkertechnologies.tech</font>'
+        '<font size="8" color="#555555">Udyam Registration No: 10-0132779</font><br/>'
+        '<font size="8" color="#555555">Phone: 9742838165</font><br/>'
+        '<font size="8" color="#555555">Email: contact@vynkertechnologies.tech</font>'
     )
     invoice_info = (
         f'<font size="28" color="#0D47A1"><b>INVOICE</b></font><br/><br/>'
@@ -168,16 +170,22 @@ def generate_invoice_pdf(
     header_style_left = ParagraphStyle("hl", fontName="Helvetica", fontSize=10, leading=14)
     header_style_right = ParagraphStyle("hr", fontName="Helvetica", fontSize=10, leading=14, alignment=TA_RIGHT)
 
-    header_table = Table(
-        [[Paragraph(company_info, header_style_left),
-          Paragraph(invoice_info, header_style_right)]],
-        colWidths=[W * 0.55, W * 0.45],
-    )
+    if LOGO_PATH.exists():
+        logo_img = Image(str(LOGO_PATH), width=30*mm, height=30*mm)
+        header_cols = [logo_img, Paragraph(company_info, header_style_left), Paragraph(invoice_info, header_style_right)]
+        col_widths = [W * 0.18, W * 0.42, W * 0.40]
+        line_col = 1
+    else:
+        header_cols = [Paragraph(company_info, header_style_left), Paragraph(invoice_info, header_style_right)]
+        col_widths = [W * 0.60, W * 0.40]
+        line_col = 0
+
+    header_table = Table([header_cols], colWidths=col_widths)
     header_table.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("LINEAFTER", (0, 0), (0, 0), 2, BRAND_BLUE),
-        ("RIGHTPADDING", (0, 0), (0, 0), 12),
-        ("LEFTPADDING", (1, 0), (1, 0), 12),
+        ("LINEAFTER", (line_col, 0), (line_col, 0), 2, BRAND_BLUE),
+        ("RIGHTPADDING", (line_col, 0), (line_col, 0), 12),
+        ("LEFTPADDING", (-1, 0), (-1, 0), 12),
     ]))
     elements.append(header_table)
     elements.append(Spacer(1, 14))
@@ -223,8 +231,8 @@ def generate_invoice_pdf(
         Paragraph("2", styles["table_cell"]),
         Paragraph("Maintenance (2 Months – Included)", styles["table_cell_left"]),
         Paragraph("1", styles["table_cell"]),
-        Paragraph("₹0", styles["table_cell"]),
-        Paragraph("₹0", styles["table_cell"]),
+        Paragraph("Rs. 0", styles["table_cell"]),
+        Paragraph("Rs. 0", styles["table_cell"]),
     ]
 
     items_table = Table(
@@ -316,12 +324,13 @@ def generate_invoice_pdf(
 
     # Signature block
     sign_parts = []
-    sign_parts.append(Paragraph("<i>Authorized Signature</i>", styles["sign_title"]))
+    sign_parts.append(Paragraph("<b>Authorized Signature</b>", styles["sign_name"]))
     sign_parts.append(Spacer(1, 4))
     if SIGNATURE_PATH.exists():
         sign_parts.append(Image(str(SIGNATURE_PATH), width=100, height=45))
     sign_parts.append(Spacer(1, 4))
     sign_parts.append(Paragraph("<b>Tarun kumar</b>", styles["sign_name"]))
+    sign_parts.append(Paragraph("(CEO)", styles["sign_title"]))
 
     # Build a 2-column table for terms + signature side by side
     from reportlab.platypus import KeepTogether

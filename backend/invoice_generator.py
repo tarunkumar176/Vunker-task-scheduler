@@ -265,23 +265,24 @@ def generate_invoice_pdf(
 
     # ── TOTALS ─────────────────────────────────────────────────────────────────
     totals_data = [
-        [Paragraph("Subtotal", styles["total_label"]),
-         Paragraph(_format_inr(total_cost), styles["total_value"])],
-        [Paragraph("<b>Total Amount</b>", styles["total_label"]),
-         Paragraph(f"<b>{_format_inr(total_cost)}</b>", styles["total_value"])],
+        [Paragraph("Subtotal", styles["table_cell_left"]),
+         Paragraph(_format_inr(total_cost), styles["table_cell"])],
+        [Paragraph("<b>Total Amount</b>", styles["table_cell_left"]),
+         Paragraph(f"<b>{_format_inr(total_cost)}</b>", styles["table_cell"])],
     ]
     totals_table = Table(
         totals_data,
-        colWidths=[W * 0.60, W * 0.40],
+        colWidths=[W * 0.20, W * 0.20],
         rowHeights=[26, 30],
+        hAlign='RIGHT'
     )
     totals_table.setStyle(TableStyle([
-        ("ALIGN", (0, 0), (-1, -1), "RIGHT"),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("BACKGROUND", (0, 1), (-1, 1), HexColor("#E8EAF6")),
-        ("LINEABOVE", (0, 0), (-1, 0), 0.5, BORDER_GREY),
-        ("LINEBELOW", (0, 1), (-1, 1), 1, BRAND_BLUE),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+        ("BOX", (0, 0), (-1, -1), 0.5, BORDER_GREY),
+        ("INNERGRID", (0, 0), (-1, -1), 0.5, BORDER_GREY),
+        ("LEFTPADDING", (0, 0), (0, -1), 12),
+        ("RIGHTPADDING", (1, 0), (1, -1), 0),
     ]))
     elements.append(totals_table)
     elements.append(Spacer(1, 14))

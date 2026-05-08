@@ -345,23 +345,30 @@ def generate_invoice_pdf(
         [[sp] for sp in sign_parts],
         colWidths=[W * 0.35],
     )
-    inner_sign.setStyle(TableStyle([
+    inner_sign_style = [
         ("ALIGN", (0, 0), (-1, -1), "CENTER"),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("TOPPADDING", (0, 0), (-1, -1), 1),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 1),
-    ]))
+    ]
+    name_idx = 4 if SIGNATURE_PATH.exists() else 2
+    inner_sign_style.append(("LINEABOVE", (0, name_idx), (-1, name_idx), 0.5, BRAND_DARK))
+
+    inner_sign.setStyle(TableStyle(inner_sign_style))
 
     bottom_table = Table(
         [[terms_para, inner_sign]],
-        colWidths=[W * 0.78, W * 0.22],
+        colWidths=[W * 0.70, W * 0.30],
     )
     bottom_table.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("BOX", (0, 0), (-1, -1), 0.5, BORDER_GREY),
-        ("LEFTPADDING", (0, 0), (0, 0), 8),
-        ("TOPPADDING", (0, 0), (-1, -1), 8),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+        ("BOX", (0, 0), (0, 0), 0.5, BORDER_GREY), # Box ONLY around terms (col 0)
+        ("ROUNDEDCORNERS", [4, 4, 4, 4]), # rounded corners for the box
+        ("LEFTPADDING", (0, 0), (0, 0), 10),
+        ("RIGHTPADDING", (0, 0), (0, 0), 10),
+        ("TOPPADDING", (0, 0), (0, 0), 8),
+        ("BOTTOMPADDING", (0, 0), (0, 0), 8),
+        # No padding for signature block to keep it clean
     ]))
     elements.append(bottom_table)
 

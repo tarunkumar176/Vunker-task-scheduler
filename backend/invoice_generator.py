@@ -184,6 +184,7 @@ def generate_invoice_pdf(
     header_table = Table([header_cols], colWidths=col_widths)
     header_table.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (0, 0), 0),
         ("LINEAFTER", (line_col, 0), (line_col, 0), 2, BRAND_BLUE),
         ("RIGHTPADDING", (line_col, 0), (line_col, 0), 12),
         ("LEFTPADDING", (-1, 0), (-1, 0), 12),

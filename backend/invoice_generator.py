@@ -145,10 +145,10 @@ def generate_invoice_pdf(
     buf = io.BytesIO()
     doc = SimpleDocTemplate(
         buf, pagesize=A4,
-        leftMargin=18 * mm, rightMargin=18 * mm,
+        leftMargin=12 * mm, rightMargin=12 * mm,
         topMargin=15 * mm, bottomMargin=15 * mm,
     )
-    W = A4[0] - 36 * mm  # usable width
+    W = A4[0] - 24 * mm  # usable width (12mm each side)
     styles = _make_styles()
     elements = []
 

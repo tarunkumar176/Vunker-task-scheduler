@@ -38,7 +38,7 @@ TEXT_GREY     = HexColor("#555555")
 
 ROOT = Path(__file__).parent
 SIGNATURE_PATH = ROOT / "auth_signature.png"
-LOGO_PATH = ROOT.parent / "frontend" / "assets" / "images" / "app-image.png"
+LOGO_PATH = ROOT.parent / "frontend" / "assets" / "images" / "logo_transparent.png"
 
 # ── Payment details (configurable via env) ─────────────────────────────────────
 PAYMENT_INFO = {

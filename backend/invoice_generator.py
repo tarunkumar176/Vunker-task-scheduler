@@ -172,9 +172,9 @@ def generate_invoice_pdf(
 
     if LOGO_PATH.exists():
         # Enlarge the logo image and ensure transparency is respected (mask='auto')
-        logo_img = Image(str(LOGO_PATH), width=55*mm, height=55*mm, kind='proportional', mask='auto')
+        logo_img = Image(str(LOGO_PATH), width=45*mm, height=45*mm, kind='proportional', mask='auto')
         header_cols = [logo_img, Paragraph(company_info, header_style_left), Paragraph(invoice_info, header_style_right)]
-        col_widths = [W * 0.32, W * 0.38, W * 0.30]
+        col_widths = [W * 0.25, W * 0.42, W * 0.33]
         line_col = 1
     else:
         header_cols = [Paragraph(company_info, header_style_left), Paragraph(invoice_info, header_style_right)]

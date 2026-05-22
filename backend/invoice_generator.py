@@ -288,33 +288,7 @@ def generate_invoice_pdf(
     elements.append(totals_table)
     elements.append(Spacer(1, 14))
 
-    # ── PAYMENT DETAILS ────────────────────────────────────────────────────────
-    elements.append(_section_bar("PAYMENT DETAILS:", styles, W))
-    elements.append(Spacer(1, 6))
 
-    pay_rows = [
-        ["UPI ID",          ":", PAYMENT_INFO["upi_id"]],
-        ["Bank Name",       ":", PAYMENT_INFO["bank_name"]],
-        ["Account Number",  ":", PAYMENT_INFO["account_number"]],
-        ["IFSC Code",       ":", PAYMENT_INFO["ifsc_code"]],
-    ]
-    pay_data = []
-    for label, sep, val in pay_rows:
-        pay_data.append([
-            Paragraph(f"<b>{label}</b>", styles["pay_label"]),
-            Paragraph(sep, styles["pay_label"]),
-            Paragraph(val, styles["pay_value"]),
-        ])
-    pay_table = Table(pay_data, colWidths=[W * 0.25, W * 0.05, W * 0.40])
-    pay_table.setStyle(TableStyle([
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("TOPPADDING", (0, 0), (-1, -1), 3),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-        ("BOX", (0, 0), (-1, -1), 0.5, BORDER_GREY),
-        ("LEFTPADDING", (0, 0), (0, -1), 10),
-    ]))
-    elements.append(pay_table)
-    elements.append(Spacer(1, 14))
 
     # ── TERMS & CONDITIONS + SIGNATURE ─────────────────────────────────────────
     elements.append(_section_bar("TERMS & CONDITIONS:", styles, W))

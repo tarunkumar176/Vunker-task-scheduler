@@ -27,7 +27,20 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 log = logging.getLogger(__name__)
 
 # ── DB setup ──────────────────────────────────────────────────────────────────
-engine = create_async_engine(DATABASE_URL, echo=False)
+# Fix Render/Neon URL for asyncpg
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+asyncpg://", 1)
+elif DATABASE_URL.startswith("postgresql://") and not DATABASE_URL.startswith("postgresql+asyncpg://"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
+
+connect_args = {}
+if "?" in DATABASE_URL:
+    # asyncpg does not support sslmode and channel_binding directly from the URL query
+    if "sslmode=require" in DATABASE_URL:
+        connect_args["ssl"] = "require"
+    DATABASE_URL = DATABASE_URL.split("?")[0]
+
+engine = create_async_engine(DATABASE_URL, echo=False, connect_args=connect_args)
 SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
 class Base(DeclarativeBase): pass
